@@ -2,6 +2,13 @@
 
 # Cadre d'exposition
 ## 1. BESOINS
+Le but de cet outil est de simplifier la configuration du parc Siem des clients.
+le produit sera configuration as code 
+les types de client sont:
+- MSSP qui gère les parcs SIEM de leurs différents client via Logpoint Director
+- Clients finaux qui gèrent leur parc SIEM
+La gestion automatidéé de ces parcs se fera à l'aide de l'API qui est disponible pour les Director, les siem logpoint n'ont pas encore le support API mes les prochaines releases l'auront
+Le produit devra prendre de compte de differents type API et aussi des versions API
 ### 1.1 Quels sont les vrais problèmes que tu as vécus chez les clients MSSP ?
 ### 1.2 Et chez les clients Director (non-MSSP) ?
 ### 1.3 Qu'est-ce qui fait perdre du temps, créé des erreurs, empêche de scaler ?
