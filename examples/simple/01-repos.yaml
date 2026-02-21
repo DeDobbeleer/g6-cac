@@ -1,0 +1,58 @@
+# ============================================================
+# REPOS - Configuration du stockage
+# ============================================================
+# Définit où et combien de temps les logs sont stockés
+
+apiVersion: logpoint-cac/v1
+kind: Repo
+
+metadata:
+  name: default
+  environment: production
+  
+spec:
+  name: default
+  description: "Stockage principal pour les logs standards"
+  paths:
+    - path: "/opt/immune/storage/default"
+      retention_days: 365
+      compression: true
+      high_availability: false
+  enabled: true
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: Repo
+
+metadata:
+  name: alerts
+  environment: production
+  
+spec:
+  name: alerts
+  description: "Stockage haute rétention pour les alertes et logs critiques"
+  paths:
+    - path: "/opt/immune/storage/alerts"
+      retention_days: 1095  # 3 ans
+      compression: true
+      high_availability: true
+  enabled: true
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: Repo
+
+metadata:
+  name: cold-storage
+  environment: production
+  
+spec:
+  name: cold-storage
+  description: "Stockage froid pour compliance long terme"
+  paths:
+    - path: "/mnt/cold/storage"
+      retention_days: 2555  # 7 ans
+      compression: true
+  enabled: true

@@ -1,253 +1,113 @@
-# Logpoint CaC - Architecture Decision Records (ADR)
+# Architecture Decision Records
 
-## ADR-001 : Langage de programmation
+## ADR-001: Langage et stack technique
 
-### Status
-> Proposé
+**Statut**: Accepté (PoC)
 
-### Contexte
-Besoin d'un langage pour implémenter l'outil CLI CaC. Contraintes :
-- Facilité de maintenance par l'équipe
-- Bonnes librairies HTTP/API
-- Facilité de packaging/distribution
-- Performance acceptable pour des appels API
+**Décision**: Python avec Pydantic + Typer + Rich
 
-### Options considérées
+**Justification**:
+- Prototypage rapide pour le PoC
+- Pydantic excellent pour validation YAML
+- Typer/Rich = CLI professionnelle sans effort
+- Facilement portable en Go plus tard si besoin performance
 
-| Langage | Pros | Cons |
-|---------|------|------|
-| **Python** | Équipe familière, riche écosystème, PyYAML natif, rapidité de dev | Performance, packaging complexe |
-| **Go** | Binaire statique, performant, bon pour CLI, typage fort | Courbe d'apprentissage, moins d'équipe familière |
-| **Rust** | Performance, sécurité, binaire statique | Complexité, overkill pour ce use case |
-| **TypeScript/Node** | Équipe JS possible, bon tooling | Runtime lourd, gestion async complexe |
-
-### Décision
-**Python** avec packaging via `uv` / `pex` / `PyInstaller`
-
-### Justification
-- L'équipe SOC/DevOps est probablement plus à l'aise avec Python
-- Librairies HTTP (httpx, requests) matures
-- Pydantic pour la validation de schémas YAML
-- Rich/Typer pour des CLI ergonomiques
-- Packaging acceptable avec les outils modernes
-
-### Conséquences
-- Dépendance Python sur les machines cibles (ou binaire)
-- GIL peut limiter le parallélisme (mais I/O bound ici)
+**Alternatives envisagées**: Go (meilleure perf, binaire statique) mais courbe d'apprentissage plus longue pour itérations rapides.
 
 ---
 
-## ADR-002 : Gestion du state
+## ADR-002: Scope du PoC
 
-### Status
-> Proposé
+**Statut**: Accepté
 
-### Contexte
-L'outil doit maintenir un mapping entre les noms lisibles (YAML) et les IDs internes de Logpoint. Où stocker cet état ?
+**Décision**: Se concentrer sur le pipeline de données uniquement
+- Repos
+- Routing Policies  
+- Normalization Policies
+- Processing Policies
 
-### Options considérées
+**Justification**:
+- C'est le cœur métier commun à tous les clients
+- Démonstration concrète de la valeur (gain de temps énorme)
+- APIs Director stables et bien documentées pour ces ressources
+- Facilement testable (créer/supprimer des repos = safe)
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Local file** (`.cac/state.json`) | Simple, offline, pas de dépendance | Pas de partage, conflits en équipe |
-| **Git** (state.json versionné) | Traçabilité, partage | Risque de conflits, secrets possibles |
-| **S3/Object storage** | Partagé, durable, scalable | Dépendance cloud, latence |
-| **Etat réel comme source** | Toujours à jour, pas de drift | Lent (requêtes API), pas de cache |
-
-### Décision
-**Git + cache local optionnel**
-
-Le state est dérivé de l'état réel via `cac sync` et commité dans Git. Pas de state séparé persistant.
-
-### Justification
-- GitOps-friendly : tout est dans Git
-- Pas de SPOF sur un backend de state
-- Drift detection naturelle (diff Git vs réalité)
-- Reproductibilité (checkout + apply)
-
-### Conséquences
-- `plan` nécessite des appels API pour résoudre les IDs
-- Caching local possible pour accélérer
-- Nécessite une connexion API pour la plupart des opérations
+**Hors scope PoC**:
+- AlertRules (plus complexe, risqué en test)
+- DeviceGroups (nécessite devices existants)
+- Users/Permissions (sensible)
 
 ---
 
-## ADR-003 : Format de configuration
+## ADR-003: Format de configuration
 
-### Status
-> Proposé
+**Statut**: Accepté (PoC)
 
-### Contexte
-Quel format pour définir les ressources Logpoint ?
+**Décision**: YAML avec schémas Pydantic, style Kubernetes
 
-### Options considérées
-
-| Format | Pros | Cons |
-|--------|------|------|
-| **YAML** | Lisible, standard, comments | Verbose, indentation sensible |
-| **JSON** | Universel, parsing simple | Pas de comments, verbeux |
-| **HCL** (Terraform) | Connu des DevOps, modules | Courbe d'apprentissage, complexe |
-| **CUE** | Validation forte, langage config | Nouveau, peu connu |
-| **TOML** | Simple, comments | Moins standard pour ce use case |
-
-### Décision
-**YAML avec schémas Pydantic**
-
-### Justification
-- Standard dans l'écosystème K8s/GitOps
-- Les équipes SOC sont familières avec YAML
-- Pydantic permet validation + auto-completion
-- Support natif des comments pour documentation
-
-### Structure
 ```yaml
 apiVersion: logpoint-cac/v1
-kind: AlertRule
+kind: Repo
 metadata:
-  name: brute-force-ssh
-  pool: production-pool-a
+  name: default
 spec:
-  # ... champs spécifiques
+  ...
 ```
 
----
-
-## ADR-004 : Stratégie de déploiement
-
-### Status
-> Proposé
-
-### Contexte
-Comment appliquer les changements sur les pools ?
-
-### Options considérées
-
-| Stratégie | Pros | Cons |
-|-----------|------|------|
-| **All-at-once** | Simple, rapide | Risque élevé, pas de rollback partiel |
-| **Sequential** | Contrôle, rollback par étape | Lent |
-| **Canary** (un pool) | Sécurité, validation réelle | Complexité, nécessite staging |
-| **Blue/Green** | Zero-downtime | Overkill pour de la config |
-
-### Décision
-**Sequential avec checkpoint**
-
-Par défaut, appliquer séquentiellement avec possibilité d'arrêt en cas d'erreur. Option `--parallel` pour la vitesse.
-
-### Justification
-- API Director n'est pas conçue pour des transactions
-- Échec partiel = état inconnu
-- Sequential permet rollback ciblé
-- Option parallèle pour les cas sûrs (créations uniquement)
-
-### Ordre de déploiement
-1. DeviceGroups (dépendances pour les devices)
-2. Repos (dépendances pour les alertes)
-3. AlertRules
-4. Policies
-5. SystemSettings
+**Justification**:
+- Standard DevOps/GitOps
+- Comments possibles (vs JSON)
+- Pydantic génère validation + erreurs claires
 
 ---
 
-## ADR-005 : Authentification
+## ADR-004: Gestion des dépendances
 
-### Status
-> Proposé
+**Statut**: Accepté (PoC)
 
-### Contexte
-Comment l'outil s'authentifie-t-il à l'API Director ?
+**Décision**: Ordre de déploiement implicite via le pipeline Processing
 
-### Options considérées
+**Ordre**:
+1. Repos (aucune dépendance)
+2. Routing Policies (dépend des repos)
+3. Normalization Policies (indépendant)
+4. Processing Policies (dépend de 2 et 3)
 
-| Méthode | Pros | Cons |
-|---------|------|------|
-| **Token en variable d'env** | Simple, standard | Pas de rotation, exposé dans env |
-| **Fichier de config** | Persistant, multi-env | Risque de commit accidentel |
-| **Vault integration** | Sécurisé, rotation | Complexité, dépendance |
-| **OIDC/IAM** | Pas de secret, moderne | Support incertain côté Director |
-
-### Décision
-**Hiérarchie : Env var > Config file > Vault (optionnel)**
-
-```bash
-# Option 1 : Env
-export LOGPOINT_API_TOKEN="..."
-
-# Option 2 : Config file
-# ~/.config/logpoint-cac/config.yaml
-api_token: "..."
-
-# Option 3 : Vault (si configuré)
-vault:
-  address: "https://vault.company.com"
-  path: "secret/logpoint/api-token"
-```
-
-### Justification
-- Flexibilité selon les contraintes de l'organisation
-- Vault supporté mais pas obligatoire
-- Possibilité de rotation via sidecar
+**Justification**:
+- Graphe simple pour le PoC (DAG linéaire)
+- Pas besoin de resolver complexe pour démontrer la valeur
+- Traitement manuel dans le bon ordre acceptable pour v1
 
 ---
 
-## ADR-006 : Gestion des erreurs et retry
+## ADR-005: State management
 
-### Status
-> Proposé
+**Statut**: Proposé
 
-### Contexte
-Les APIs peuvent échouer (timeout, rate limit, erreur temporaire). Comment gérer ?
+**Décision**: Pas de state persistant séparé. État = réalité Director + fichiers YAML.
 
-### Décision
-**Retry avec backoff exponentiel + circuit breaker**
+**Justification**:
+- Simplicité maximale pour le PoC
+- Pas de SPOF, pas de base de données à gérer
+- `cac sync` permet d'exporter l'état réel quand besoin
 
-```python
-# Configuration par défaut
-retry:
-  max_attempts: 3
-  backoff_base: 1  # secondes
-  backoff_max: 30  # secondes
-  
-circuit_breaker:
-  failure_threshold: 5
-  recovery_timeout: 60  # secondes
-```
-
-### Comportement
-- Retry sur 5xx, timeout, connection error
-- Pas de retry sur 4xx (client error)
-- Circuit breaker après N échecs consécutifs
-- Mode "dry-run" pour valider avant apply
+**Limitations connues**:
+- `plan` nécessite des appels API pour résoudre les IDs
+- Pas de cache = plus lent (acceptable pour PoC)
 
 ---
 
-## ADR-007 : Interface utilisateur
+## ADR-006: Mode Direct vs Director
 
-### Status
-> Proposé
+**Statut**: Différé
 
-### Contexte
-Quelle forme prend l'outil ? CLI uniquement ? Web UI ?
+**Décision**: PoC en mode Director uniquement.
 
-### Options considérées
+**Justification**:
+- APIs Director stables et testées
+- Clientèle MSSP existante = marché immédiat
+- APIs SIEM direct = à valider, pas bloquant pour démontrer le concept
 
-| Interface | Pros | Cons |
-|-----------|------|------|
-| **CLI only** | Simple, scriptable, GitOps natif | Courbe d'apprentissage, pas visuel |
-| **CLI + TUI** (Text UI) | Interactif, reste dans le terminal | Complexité, dépendances |
-| **Web UI** | Accessible, visuel | SPOF, sécurité, maintenance |
-| **CLI + API** | Flexible, intégrations | Overkill pour MVP |
-
-### Décision
-**CLI riche (Typer + Rich) d'abord, API interne pour extensions**
-
-### Fonctionnalités CLI
-- Output coloré et formaté (tables, arbres)
-- Progress bars pour les opérations longues
-- Interactive mode pour le debugging
-- JSON output pour piping
-
-### Futur possible
-- TUI avec `textual` si demande
-- Web UI en V2 si nécessaire (lecture seule d'abord)
-
+**Évolution future**:
+- Ajouter connecteur Direct quand APIs SIEM disponibles
+- Abstraction commune pour que les configs fonctionnent dans les deux modes

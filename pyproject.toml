@@ -1,0 +1,18 @@
+[project]
+name = "lpcac"
+version = "0.1.0"
+description = "Logpoint Configuration as Code - PoC Pipeline de données"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.9.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "httpx>=0.25.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[tool.ruff]
+line-length = 100

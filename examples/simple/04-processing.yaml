@@ -1,0 +1,106 @@
+# ============================================================
+# PROCESSING POLICIES - Pipeline complet
+# ============================================================
+# Ordonne toutes les étapes : routing -> normalization -> storage
+
+apiVersion: logpoint-cac/v1
+kind: ProcessingPolicy
+
+metadata:
+  name: standard-security-pipeline
+  environment: production
+
+spec:
+  name: standard-security-pipeline
+  description: "Pipeline standard pour les logs de sécurité"
+  enabled: true
+  pipeline:
+    # Étape 1: Router vers le bon repo
+    - step: routing
+      policy_ref: critical-security-logs
+    
+    # Étape 2: Normaliser selon le format détecté
+    - step: normalization
+      policy_ref: parse-syslog-standard
+      condition: "format == 'syslog'"
+    
+    # Étape 3: Enrichissement GeoIP (optionnel)
+    - step: enrichment
+      policy_ref: geoip-lookup
+      optional: true
+    
+    # Étape 4: Enrichissement Threat Intel (optionnel)
+    - step: enrichment
+      policy_ref: threat-intel-lookup
+      optional: true
+    
+    # Étape 5: Stockage final
+    - step: storage
+      repo_ref: default
+  
+  on_error: quarantine  # drop | quarantine | continue | alert
+  max_events_per_second: 10000
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: ProcessingPolicy
+
+metadata:
+  name: windows-domain-controller
+  environment: production
+
+spec:
+  name: windows-domain-controller
+  description: "Pipeline spécifique pour les logs des DC Windows"
+  enabled: true
+  pipeline:
+    - step: routing
+      policy_ref: windows-security-events
+    
+    - step: normalization
+      policy_ref: parse-windows-security
+    
+    - step: enrichment
+      policy_ref: active-directory-lookup
+      optional: true
+    
+    - step: storage
+      repo_ref: alerts  # Stockage longue durée
+  
+  on_error: alert  # On veut être alerté si un DC ne loggue plus
+  max_events_per_second: 5000
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: ProcessingPolicy
+
+metadata:
+  name: firewall-perimeter
+  environment: production
+
+spec:
+  name: firewall-perimeter
+  description: "Pipeline pour les firewalls de périmètre"
+  enabled: true
+  pipeline:
+    - step: routing
+      policy_ref: critical-security-logs
+    
+    - step: normalization
+      policy_ref: parse-firewall-logs
+    
+    - step: enrichment
+      policy_ref: geoip-lookup
+      optional: true
+    
+    - step: processing
+      policy_ref: drop-internal-to-internal  # Filtre les flux internes si besoin
+      optional: true
+    
+    - step: storage
+      repo_ref: default
+  
+  on_error: quarantine
+  max_events_per_second: 50000  # Firewalls = gros volume

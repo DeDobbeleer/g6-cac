@@ -1,0 +1,70 @@
+# ============================================================
+# ROUTING POLICIES - Où router les logs
+# ============================================================
+# Définit quels logs vont dans quel repo selon leur contenu
+
+apiVersion: logpoint-cac/v1
+kind: RoutingPolicy
+
+metadata:
+  name: critical-security-logs
+  environment: production
+
+spec:
+  name: critical-security-logs
+  description: "Route les logs de sécurité critiques vers le repo alerts"
+  enabled: true
+  priority: 10  # Haute priorité (1-100, 1 = premier)
+  conditions:
+    - field: "severity"
+      operator: "in"
+      values: ["high", "critical", "emergency"]
+    - field: "device_type"
+      operator: "in"
+      values: ["firewall", "ids", "ips", "edr"]
+  actions:
+    target_repo: "alerts"
+    stop_processing: false
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: RoutingPolicy
+
+metadata:
+  name: windows-security-events
+  environment: production
+
+spec:
+  name: windows-security-events
+  description: "Route les événements Windows de sécurité"
+  enabled: true
+  priority: 20
+  conditions:
+    - field: "log_source"
+      operator: "contains"
+      value: "Microsoft-Windows-Security"
+  actions:
+    target_repo: "alerts"
+    stop_processing: false
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: RoutingPolicy
+
+metadata:
+  name: default-route
+  environment: production
+
+spec:
+  name: default-route
+  description: "Route par défaut pour tous les autres logs"
+  enabled: true
+  priority: 100  # Basse priorité = dernier
+  conditions:
+    - field: "*"
+      operator: "exists"
+  actions:
+    target_repo: "default"
+    stop_processing: true  # Dernier, on arrête ici

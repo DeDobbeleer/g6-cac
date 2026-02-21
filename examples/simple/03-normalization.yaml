@@ -1,0 +1,88 @@
+# ============================================================
+# NORMALIZATION POLICIES - Parser et normaliser
+# ============================================================
+# Transforme les logs bruts en format standard Logpoint
+
+apiVersion: logpoint-cac/v1
+kind: NormalizationPolicy
+
+metadata:
+  name: parse-syslog-standard
+  environment: production
+
+spec:
+  name: parse-syslog-standard
+  description: "Parse les logs syslog standard RFC 3164/5424"
+  enabled: true
+  priority: 10
+  match_conditions:
+    - format: "syslog"
+  parser_rules:
+    - name: "syslog-header"
+      source_format: "syslog"
+      pattern: "<(?P<priority>\\d+)>(?P<timestamp>\\w+ \\d+ \\d+:\d+:\d+) (?P<hostname>\\S+) (?P<tag>[^:]+): (?P<message>.*)"
+      target_fields:
+        timestamp: "ts"
+        hostname: "device_name"
+        tag: "program"
+        message: "msg"
+  output_schema: ["ts", "device_name", "program", "msg", "severity", "facility"]
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: NormalizationPolicy
+
+metadata:
+  name: parse-windows-security
+  environment: production
+
+spec:
+  name: parse-windows-security
+  description: "Parse les événements Windows Security (Event ID)"
+  enabled: true
+  priority: 20
+  match_conditions:
+    - log_source: "Microsoft-Windows-Security-Auditing"
+  package_ref: "windows-security-package"
+  parser_rules:
+    - name: "event-4624-logon"
+      source_format: "json"
+      field_mapping:
+        EventID: "event_id"
+        TimeCreated: "ts"
+        Computer: "device_name"
+        SubjectUserName: "subject_user"
+        TargetUserName: "target_user"
+        LogonType: "logon_type"
+        IpAddress: "src_ip"
+  output_schema: ["event_id", "ts", "device_name", "subject_user", "target_user", "logon_type", "src_ip"]
+
+---
+
+apiVersion: logpoint-cac/v1
+kind: NormalizationPolicy
+
+metadata:
+  name: parse-firewall-logs
+  environment: production
+
+spec:
+  name: parse-firewall-logs
+  description: "Parse les logs de firewalls (exemple: Palo Alto, Fortinet)"
+  enabled: true
+  priority: 30
+  match_conditions:
+    - device_type: "firewall"
+  parser_rules:
+    - name: "firewall-allow-deny"
+      source_format: "custom"
+      pattern: "(?P<action>ALLOW|DENY) src=(?P<src_ip>\\S+) dst=(?P<dst_ip>\\S+) sport=(?P<src_port>\\d+) dport=(?P<dst_port>\\d+) proto=(?P<protocol>\\S+)"
+      target_fields:
+        action: "action"
+        src_ip: "src_ip"
+        dst_ip: "dst_ip"
+        src_port: "src_port"
+        dst_port: "dst_port"
+        protocol: "protocol"
+  output_schema: ["ts", "action", "src_ip", "dst_ip", "src_port", "dst_port", "protocol"]
