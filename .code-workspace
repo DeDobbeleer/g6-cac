@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "guardsix-cac"
+    },
+    {
+      "path": "~/Documents/Misc/director-sync_v0.1.0_PROTOTYPE-DRAFT",
+      "name": "Dirsync-aaron"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "~/Documents/Misc/director-sync_v0.1.0_PROTOTYPE-DRAFT": true
+    },
+    "git.ignoreLimitWarning": true
+  }
+}
