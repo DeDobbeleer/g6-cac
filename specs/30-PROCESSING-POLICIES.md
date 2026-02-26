@@ -9,28 +9,28 @@
 
 ## 1. Executive Summary
 
-Les **Processing Policies (PP)** sont des **ressources de configuration** qui lient ensemble :
-- **1 Routing Policy** (où stocker)
-- **1 Normalization Policy** (comment parser)  
-- **1 Enrichment Policy** (quel contexte ajouter)
+**Processing Policies (PP)** are **configuration resources** that link together:
+- **1 Routing Policy** (where to store)
+- **1 Normalization Policy** (how to parse)  
+- **1 Enrichment Policy** (what context to add)
 
 ```
 Processing Policy = RP + NP + EP
 
 Log Source → [Processing Policy] → Storage
                 │
-                ├── RP: routing-policy-ref → choisit repo
-                ├── NP: normalization-policy-ref → parse log
-                └── EP: enrichment-policy-ref → ajoute contexte
+                ├── RP: routing-policy-ref → selects repo
+                ├── NP: normalization-policy-ref → parses log
+                └── EP: enrichment-policy-ref → adds context
 ```
 
-**Rôle**: Simplifier la configuration en regroupant les 3 policies en 1 référence.
+**Role**: Simplify configuration by grouping 3 policies into 1 reference.
 
 ---
 
 ## 2. Structure
 
-### 2.1 Définition YAML
+### 2.1 YAML Definition
 
 ```yaml
 # templates/mssp/acme-corp/base/processing-policies.yaml
@@ -45,33 +45,33 @@ spec:
     - name: windows-security-pipeline
       _id: pp-windows-sec
       
-      # Références aux 3 policies
+      # References to the 3 policies
       routingPolicy: rp-windows-security
       normalizationPolicy: np-windows
       enrichmentPolicy: ep-geoip-threatintel
       
-      # Métadonnées
-      description: "Pipeline complet pour logs Windows sécurité"
+      # Metadata
+      description: "Complete pipeline for Windows security logs"
       enabled: true
 ```
 
-### 2.2 Champs
+### 2.2 Fields
 
-| Champ | Type | Description | Requis |
+| Field | Type | Description | Required |
 |-------|------|-------------|--------|
-| `name` | string | Nom unique de la PP | ✅ Oui |
-| `_id` | string | ID template pour héritage | ✅ Oui |
-| `routingPolicy` | string | Référence RoutingPolicy | ✅ Oui |
-| `normalizationPolicy` | string | Référence NormalizationPolicy | ❌ Non (défaut: Auto) |
-| `enrichmentPolicy` | string | Référence EnrichmentPolicy | ❌ Non |
-| `description` | string | Description | ❌ Non |
-| `enabled` | bool | Actif/inactif | ❌ Non (défaut: true) |
+| `name` | string | Unique PP name | ✅ Yes |
+| `_id` | string | Template ID for inheritance | ✅ Yes |
+| `routingPolicy` | string | RoutingPolicy reference | ✅ Yes |
+| `normalizationPolicy` | string | NormalizationPolicy reference | ❌ No (default: Auto) |
+| `enrichmentPolicy` | string | EnrichmentPolicy reference | ❌ No |
+| `description` | string | Description | ❌ No |
+| `enabled` | bool | Active/inactive | ❌ No (default: true) |
 
 ---
 
-## 3. Héritage
+## 3. Inheritance
 
-Même mécanisme que les autres ressources : `_id` pour matcher.
+Same mechanism as other resources: `_id` for matching.
 
 ```yaml
 # Parent: logpoint/golden-base/processing-policies.yaml
@@ -83,19 +83,19 @@ spec:
       normalizationPolicy: np-auto
       enrichmentPolicy: ep-basic
 
-# Enfant: mssp/acme-corp/base/processing-policies.yaml
+# Child: mssp/acme-corp/base/processing-policies.yaml
 spec:
   processingPolicies:
     - name: default-pipeline
       _id: pp-default
       routingPolicy: rp-acme-default        # Override
-      # normalizationPolicy: hérité (np-auto)
+      # normalizationPolicy: inherited (np-auto)
       enrichmentPolicy: ep-acme-geoip       # Override
 ```
 
 ---
 
-## 4. Exemples
+## 4. Examples
 
 ### 4.1 LogPoint Golden Template
 
@@ -136,7 +136,7 @@ spec:
       _id: pp-default
       routingPolicy: rp-acme-default
       normalizationPolicy: np-auto
-      enrichmentPolicy: ep-acme-geoip       # Ajoute GeoIP maison
+      enrichmentPolicy: ep-acme-geoip       # Add custom GeoIP
       
     - name: windows-security
       _id: pp-windows-sec
@@ -148,36 +148,36 @@ spec:
       _id: pp-high-value
       routingPolicy: rp-critical-assets
       normalizationPolicy: np-auto
-      enrichmentPolicy: ep-premium          # Tous les enrichissements
+      enrichmentPolicy: ep-premium          # All enrichments
 ```
 
 ### 4.3 Instance
 
 ```yaml
-# instances/banque-dupont/prod/instance.yaml
+# instances/client-bank/prod/instance.yaml
 spec:
   processingPolicies:
     - name: windows-security
       _id: pp-windows-sec
-      routingPolicy: rp-bank-windows        # Override: routing spécifique banque
-      # normalizationPolicy: hérité
-      # enrichmentPolicy: hérité
+      routingPolicy: rp-bank-windows        # Override: bank-specific routing
+      # normalizationPolicy: inherited
+      # enrichmentPolicy: inherited
 ```
 
 ---
 
-## 5. Utilisation
+## 5. Usage
 
-### 5.1 Association avec Devices
+### 5.1 Association with Devices
 
-Les devices référencent la PP à utiliser :
+Devices reference the PP to use:
 
 ```yaml
 # devices.yaml
 devices:
   - name: windows-dc-01
     type: windows-wec
-    processingPolicy: pp-windows-sec       # ← Référence la PP
+    processingPolicy: pp-windows-sec       # ← References the PP
     
   - name: firewall-checkpoint-01
     type: checkpoint
@@ -188,46 +188,46 @@ devices:
     processingPolicy: pp-default
 ```
 
-### 5.2 Avantages
+### 5.2 Benefits
 
-- **Simplicité**: 1 référence au lieu de 3
-- **Cohérence**: Garantit RP/NP/EP compatibles
-- **Héritage**: Change tout le pipeline en 1 lieu
+- **Simplicity**: 1 reference instead of 3
+- **Consistency**: Ensures RP/NP/EP are compatible
+- **Inheritance**: Change entire pipeline in 1 place
 
 ---
 
 ## 6. Validation
 
-### 6.1 Règles
+### 6.1 Rules
 
-| Règle | Sévérité | Description |
-|-------|----------|-------------|
-| `routingPolicy` existe | ERROR | Doit référencer une RP existante |
-| `normalizationPolicy` existe | ERROR | Si spécifié, doit exister |
-| `enrichmentPolicy` existe | ERROR | Si spécifié, doit exister |
-| Pas de boucle | ERROR | EP ne référence pas la PP (indirect) |
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `routingPolicy` exists | ERROR | Must reference an existing RP |
+| `normalizationPolicy` exists | ERROR | If specified, must exist |
+| `enrichmentPolicy` exists | ERROR | If specified, must exist |
+| No cycle | ERROR | EP must not reference PP (indirect) |
 
-### 6.2 Exemple Erreur
+### 6.2 Example Error
 
 ```yaml
-# INVALIDE: Référence inexistante
+# INVALID: Non-existent reference
 processingPolicies:
   - name: bad-pipeline
-    routingPolicy: rp-inexistant           # ERROR: RP pas définie
+    routingPolicy: rp-inexistent           # ERROR: RP not defined
     normalizationPolicy: np-windows
 ```
 
 ---
 
-## Appendix: Référence Rapide
+## Appendix: Quick Reference
 
 ```yaml
 processingPolicies:
-  - name: <string>              # Obligatoire
-    _id: <string>               # Pour héritage
-    routingPolicy: <string>     # Obligatoire → RoutingPolicy
-    normalizationPolicy: <string> # Optionnel → NormalizationPolicy
-    enrichmentPolicy: <string>    # Optionnel → EnrichmentPolicy
+  - name: <string>              # Required
+    _id: <string>               # For inheritance
+    routingPolicy: <string>     # Required → RoutingPolicy
+    normalizationPolicy: <string> # Optional → NormalizationPolicy
+    enrichmentPolicy: <string>    # Optional → EnrichmentPolicy
     description: <string>
     enabled: <bool>
 ```
@@ -236,6 +236,6 @@ processingPolicies:
 
 ## Open Questions
 
-1. **Optionnels**: `normalizationPolicy` et `enrichmentPolicy` vraiment optionnels ?
-2. **Défauts**: Valeurs par défaut si non spécifiés (`np-auto`, pas d'EP) ?
-3. **Unicité**: Une PP peut-elle être utilisée par plusieurs devices ? (Oui, c'est le but)
+1. **Optionals**: Are `normalizationPolicy` and `enrichmentPolicy` really optional?
+2. **Defaults**: Default values if not specified (`np-auto`, no EP)?
+3. **Reusability**: Can a PP be used by multiple devices? (Yes, that's the point)

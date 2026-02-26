@@ -9,16 +9,16 @@
 
 ## 1. Executive Summary
 
-Spécification des commandes CLI et du workflow CaC-ConfigMgr :
+CLI commands and workflow specification for CaC-ConfigMgr:
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Validate  │───→│    Plan     │───→│    Apply    │───→│    Drift    │
-│  (syntaxe)  │    │   (diff)    │    │  (deploy)   │    │  (monitor)  │
+│  (syntax)   │    │   (diff)    │    │  (deploy)   │    │  (monitor)  │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
        │                  │                  │                  │
        └──────────────────┴──────────────────┴──────────────────┘
-                          Workflow itératif
+                          Iterative workflow
 ```
 
 ---
@@ -35,12 +35,12 @@ cac-configmgr <command> [subcommand] [flags] [args]
 
 | Command | Description | Idempotent | Safe |
 |---------|-------------|------------|------|
-| `validate` | Vérifie syntaxe et cohérence | ✅ Oui | ✅ Read-only |
-| `plan` | Calcule et affiche le diff | ✅ Oui | ✅ Read-only |
-| `apply` | Applique les changements | ✅ Oui | ⚠️ Modifie SIEM |
-| `drift` | Détecte divergences | ✅ Oui | ✅ Read-only |
-| `backup` | Exporte configuration actuelle | ✅ Oui | ✅ Read-only |
-| `version` | Affiche version | ✅ Oui | ✅ Read-only |
+| `validate` | Validates syntax and consistency | ✅ Yes | ✅ Read-only |
+| `plan` | Calculates and displays diff | ✅ Yes | ✅ Read-only |
+| `apply` | Applies changes | ✅ Yes | ⚠️ Modifies SIEM |
+| `drift` | Detects divergences | ✅ Yes | ✅ Read-only |
+| `backup` | Exports current configuration | ✅ Yes | ✅ Read-only |
+| `version` | Displays version | ✅ Yes | ✅ Read-only |
 
 ---
 
@@ -49,42 +49,42 @@ cac-configmgr <command> [subcommand] [flags] [args]
 ### 3.1 Usage
 
 ```bash
-# Valider un fichier fleet
+# Validate a fleet file
 cac-configmgr validate fleet.yaml
 
-# Valider un template
+# Validate a template
 cac-configmgr validate --template templates/mssp/acme-corp/base/
 
-# Valider une instance complète (fleet + topology)
-cac-configmgr validate --fleet instances/client-dupont/prod/fleet.yaml \
-                       --topology instances/client-dupont/prod/instance.yaml
+# Validate a complete instance (fleet + topology)
+cac-configmgr validate --fleet instances/client-bank/prod/fleet.yaml \
+                       --topology instances/client-bank/prod/instance.yaml
 
-# Valider sans connexion API (offline)
+# Validate without API connection (offline)
 cac-configmgr validate --offline fleet.yaml
 ```
 
 ### 3.2 Validation Levels
 
-| Level | Description | Sortie |
+| Level | Description | Output |
 |-------|-------------|--------|
-| **Syntax** | YAML valide, schéma respecté | Errors/Warnings |
-| **References** | Tous les refs résolvables | Errors (unresolved refs) |
-| **API Check** | Ressources externes existent | Errors (missing packages/sources) |
-| **Dry-run** | Test contre API réelle | Success/Errors |
+| **Syntax** | Valid YAML, schema respected | Errors/Warnings |
+| **References** | All refs resolvable | Errors (unresolved refs) |
+| **API Check** | External resources exist | Errors (missing packages/sources) |
+| **Dry-run** | Test against real API | Success/Errors |
 
 ### 3.3 Exit Codes
 
-| Code | Signification |
-|------|---------------|
-| 0 | Validation réussie, aucun warning |
-| 1 | Validation réussie, warnings présents |
-| 2 | Erreurs de validation |
-| 3 | Erreur système/connexion |
+| Code | Meaning |
+|------|---------|
+| 0 | Validation successful, no warnings |
+| 1 | Validation successful, warnings present |
+| 2 | Validation errors |
+| 3 | System/connection error |
 
 ### 3.4 Output Format
 
 ```bash
-# Format text (défaut)
+# Text format (default)
 cac-configmgr validate fleet.yaml
 ✓ fleet.yaml: Valid
 ✓ 12 nodes defined
@@ -92,7 +92,7 @@ cac-configmgr validate fleet.yaml
 ✓ All references valid
 ⚠ Warning: DN 'dn-legacy-site' has no cluster tag
 
-# Format JSON
+# JSON format
 cac-configmgr validate --output json fleet.yaml
 ```
 
@@ -123,17 +123,17 @@ cac-configmgr validate --output json fleet.yaml
 ### 4.1 Usage
 
 ```bash
-# Plan sur une instance complète
-cac-configmgr plan --fleet instances/client-dupont/prod/fleet.yaml \
-                   --topology instances/client-dupont/prod/instance.yaml
+# Plan on a complete instance
+cac-configmgr plan --fleet instances/client-bank/prod/fleet.yaml \
+                   --topology instances/client-bank/prod/instance.yaml
 
-# Plan avec détails complets
+# Plan with full details
 cac-configmgr plan --detailed ...
 
-# Plan format JSON (pour CI/CD)
+# Plan JSON format (for CI/CD)
 cac-configmgr plan --output json ...
 
-# Comparer deux topologies
+# Compare two topologies
 cac-configmgr plan --base topology-staging.yaml \
                    --target topology-prod.yaml
 ```
@@ -143,7 +143,7 @@ cac-configmgr plan --base topology-staging.yaml \
 ```
 $ cac-configmgr plan --fleet fleet.yaml --topology instance.yaml
 
-Planning changes for client: banque-dupont-prod
+Planning changes for client: client-bank-prod
 
 Repos (3 changes):
   + CREATE repo-trading (new in instance)
@@ -167,11 +167,11 @@ Summary:
 
 | Symbol | Type | Description |
 |--------|------|-------------|
-| `+` | CREATE | Nouvelle ressource |
-| `~` | UPDATE | Modification ressource existante |
-| `-` | DELETE | Suppression ressource |
-| `=` | UNCHANGED | Aucun changement |
-| `?` | UNKNOWN | Impossible à déterminer (API error) |
+| `+` | CREATE | New resource |
+| `~` | UPDATE | Existing resource modified |
+| `-` | DELETE | Resource deletion |
+| `=` | UNCHANGED | No change |
+| `?` | UNKNOWN | Cannot determine (API error) |
 
 ### 4.4 Detailed Diff
 
@@ -196,19 +196,19 @@ $ cac-configmgr plan --detailed ...
 ### 5.1 Usage
 
 ```bash
-# Apply interactif (demande confirmation)
+# Interactive apply (asks for confirmation)
 cac-configmgr apply --fleet fleet.yaml --topology instance.yaml
 
-# Apply auto-apprové (CI/CD)
+# Auto-approved apply (CI/CD)
 cac-configmgr apply --auto-approve fleet.yaml topology.yaml
 
-# Apply avec batch size (limiter appels API)
+# Apply with batch size (limit API calls)
 cac-configmgr apply --batch-size 10 ...
 
-# Apply uniquement certaines ressources
+# Apply only certain resources
 cac-configmgr apply --only repos,routing-policies ...
 
-# Dry-run apply (test sans modifier)
+# Dry-run apply (test without modifying)
 cac-configmgr apply --dry-run ...
 ```
 
@@ -241,10 +241,10 @@ Run 'cac-configmgr drift' to verify configuration matches target.
 ### 5.3 Rollback
 
 ```bash
-# Créer un backup avant apply
+# Create backup before apply
 cac-configmgr backup --output backup-$(date +%Y%m%d).yaml ...
 
-# En cas d'erreur partielle
+# In case of partial error
 $ cac-configmgr apply ...
 [1/6] Creating repo-trading......................... ✓ Done
 [2/6] Updating repo-secu............................ ✗ FAILED
@@ -257,29 +257,29 @@ Options:
   [r]ollback - Undo successful changes (repo-trading)
   [a]bort    - Stop, partial state remains
 
-# Rollback manuel
+# Manual rollback
 $ cac-configmgr apply --rollback backup-20260226.yaml
 ```
 
 ### 5.4 Progress Tracking
 
-| État | Indicateur | Description |
-|------|------------|-------------|
-| Pending | ⏳ | En attente d'exécution |
-| In Progress | 🔄 | Requête API envoyée |
-| Async Wait | ⏱️ | Opération asynchrone, polling |
-| Success | ✓ | Terminé avec succès |
-| Failed | ✗ | Erreur, non appliqué |
-| Skipped | ⊘ | Ignoré (dépendance failed) |
+| State | Indicator | Description |
+|-------|-----------|-------------|
+| Pending | ⏳ | Waiting to execute |
+| In Progress | 🔄 | API request sent |
+| Async Wait | ⏱️ | Async operation, polling |
+| Success | ✓ | Completed successfully |
+| Failed | ✗ | Error, not applied |
+| Skipped | ⊘ | Skipped (dependency failed) |
 
 ### 5.5 Exit Codes Apply
 
-| Code | Signification |
-|------|---------------|
-| 0 | Tous les changements appliqués |
-| 1 | Partiellement appliqué (certains failed) |
-| 2 | Erreur avant application (validation failed) |
-| 3 | Erreur système |
+| Code | Meaning |
+|------|---------|
+| 0 | All changes applied |
+| 1 | Partially applied (some failed) |
+| 2 | Error before application (validation failed) |
+| 3 | System error |
 
 ---
 
@@ -288,37 +288,37 @@ $ cac-configmgr apply --rollback backup-20260226.yaml
 ### 6.1 Usage
 
 ```bash
-# Détecter drift sur une instance
+# Detect drift on an instance
 cac-configmgr drift detect --fleet fleet.yaml --topology instance.yaml
 
-# Drift sur tout un pool
+# Drift on entire pool
 cac-configmgr drift detect --pool acme-corp
 
-# Drift avec format JSON
+# Drift with JSON format
 cac-configmgr drift detect --output json ...
 
-# Drift continu (watch mode)
+# Continuous drift (watch mode)
 cac-configmgr drift watch --interval 5m ...
 
-# Réparer le drift (remettre à la cible)
+# Repair drift (restore to target)
 cac-configmgr drift reconcile --fleet fleet.yaml --topology instance.yaml
 ```
 
 ### 6.2 Drift Types
 
-| Type | Description | Exemple |
+| Type | Description | Example |
 |------|-------------|---------|
-| **Definition Drift** | Config YAML différente de l'attendu | Retention changé manuellement dans UI |
-| **External Change** | Modification externe non reflétée | Admin ajoute repo via Director |
-| **Orphan Resource** | Ressource existe en prod mais pas dans YAML | Old test repo oublié |
-| **Missing Resource** | Ressource dans YAML mais pas en prod | Apply partiellement failed |
+| **Definition Drift** | YAML config different from expected | Retention changed manually in UI |
+| **External Change** | External modification not reflected | Admin adds repo via Director |
+| **Orphan Resource** | Resource exists in prod but not in YAML | Old test repo forgotten |
+| **Missing Resource** | Resource in YAML but not in prod | Apply partially failed |
 
 ### 6.3 Drift Detection Output
 
 ```
 $ cac-configmgr drift detect ...
 
-Drift detected for client: banque-dupont-prod
+Drift detected for client: client-bank-prod
 
 DEFINITION DRIFT (2):
   ! repo-secu
@@ -350,17 +350,17 @@ Summary: 4 drifts detected (2 critical, 2 warnings)
 drift:
   ignore:
     - type: repo
-      name: temp-*           # Ignorer les repos temporaires
+      name: temp-*           # Ignore temp repos
     - type: routing-policy
       name: test-*
   
   threshold:
-    critical: 5              # Alert si >5 drifts critiques
-    warning: 10              # Warn si >10 drifts
+    critical: 5              # Alert if >5 critical drifts
+    warning: 10              # Warn if >10 drifts
   
-  auto-reconcile: false      # Jamais auto (sécurité)
-  # auto-reconcile: warning  # Uniquement warnings
-  # auto-reconcile: all      # Tout (dangereux)
+  auto-reconcile: false      # Never auto (safety)
+  # auto-reconcile: warning  # Only warnings
+  # auto-reconcile: all      # All (dangerous)
 ```
 
 ---
@@ -370,17 +370,17 @@ drift:
 ### 7.1 Usage
 
 ```bash
-# Backup complet d'une instance
+# Full backup of an instance
 cac-configmgr backup --fleet fleet.yaml --output backup.yaml
 
-# Backup spécifique
+# Specific backup
 cac-configmgr backup --only repos,routing-policies ...
 
-# Backup avec timestamp auto
+# Backup with auto timestamp
 cac-configmgr backup --fleet fleet.yaml --output-dir ./backups/
-# Crée: backups/backup-2026-02-26T143052.yaml
+# Creates: backups/backup-2026-02-26T143052.yaml
 
-# Backup format JSON (machine-readable)
+# Backup JSON format (machine-readable)
 cac-configmgr backup --output json ...
 ```
 
@@ -392,7 +392,7 @@ apiVersion: cac-configmgr.io/v1
 kind: Backup
 metadata:
   timestamp: "2026-02-26T14:30:52Z"
-  source: "banque-dupont-prod"
+  source: "client-bank-prod"
   toolVersion: "1.0.0"
   
 spec:
@@ -404,23 +404,23 @@ spec:
     - policy_name: rp-windows
       routing_criteria: [...]
       
-  # ... autres ressources
+  # ... other resources
 ```
 
 ---
 
 ## 8. Global Flags
 
-### 8.1 Flags Universels
+### 8.1 Universal Flags
 
-| Flag | Description | Défaut |
-|------|-------------|--------|
-| `--config` | Fichier config CLI | `~/.config/cac-configmgr/config.yaml` |
-| `--log-level` | Niveau log (debug, info, warn, error) | `info` |
-| `--output` | Format sortie (text, json, yaml) | `text` |
-| `--no-color` | Désactiver couleurs | `false` |
-| `--timeout` | Timeout API (secondes) | `300` |
-| `--retry` | Nombre retries | `3` |
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--config` | CLI config file | `~/.config/cac-configmgr/config.yaml` |
+| `--log-level` | Log level (debug, info, warn, error) | `info` |
+| `--output` | Output format (text, json, yaml) | `text` |
+| `--no-color` | Disable colors | `false` |
+| `--timeout` | API timeout (seconds) | `300` |
+| `--retry` | Number of retries | `3` |
 
 ### 8.2 Configuration File
 
@@ -440,8 +440,8 @@ features:
   drift_watch_interval: 5m
   
 aliases:
-  prod: instances/client-dupont/prod/
-  staging: instances/client-dupont/staging/
+  prod: instances/client-bank/prod/
+  staging: instances/client-bank/staging/
 ```
 
 ---
@@ -451,26 +451,26 @@ aliases:
 ### 9.1 Development Workflow
 
 ```bash
-# 1. Modifier templates
+# 1. Edit templates
 vim templates/mssp/acme-corp/base/repos.yaml
 
-# 2. Valider localement
+# 2. Validate locally
 cac-configmgr validate --template templates/mssp/acme-corp/base/
 
-# 3. Plan sur staging
-cac-configmgr plan --fleet instances/client-dupont/staging/fleet.yaml \
-                   --topology instances/client-dupont/staging/instance.yaml
+# 3. Plan on staging
+cac-configmgr plan --fleet instances/client-bank/staging/fleet.yaml \
+                   --topology instances/client-bank/staging/instance.yaml
 
-# 4. Apply sur staging
-cac-configmgr apply --fleet instances/client-dupont/staging/fleet.yaml \
-                    --topology instances/client-dupont/staging/instance.yaml
+# 4. Apply on staging
+cac-configmgr apply --fleet instances/client-bank/staging/fleet.yaml \
+                    --topology instances/client-bank/staging/instance.yaml
 
-# 5. Vérifier drift
+# 5. Verify drift
 cac-configmgr drift detect --fleet ... --topology ...
 
-# 6. Même process sur prod
-cac-configmgr plan --fleet instances/client-dupont/prod/...
-cac-configmgr apply --auto-approve ...  # Si CI/CD validé
+# 6. Same process on prod
+cac-configmgr plan --fleet instances/client-bank/prod/...
+cac-configmgr apply --auto-approve ...  # If CI/CD validated
 ```
 
 ### 9.2 CI/CD Workflow
@@ -509,20 +509,20 @@ jobs:
 ### 9.3 Emergency Response
 
 ```bash
-# Incident: Besoin de changer retention immédiatement
+# Incident: Need to change retention immediately
 
-# 1. Modifier l'instance
-vim instances/client-dupont/prod/instance.yaml
-# Changer: retention: 7 → retention: 1
+# 1. Edit instance
+vim instances/client-bank/prod/instance.yaml
+# Change: retention: 7 → retention: 1
 
-# 2. Valider rapidement
+# 2. Validate quickly
 cac-configmgr validate --offline instance.yaml
 
-# 3. Apply avec confirmation explicite
+# 3. Apply with explicit confirmation
 cac-configmgr apply --only repos ...
-# Confirmer: y
+# Confirm: y
 
-# 4. Vérifier
+# 4. Verify
 cac-configmgr drift detect ...
 ```
 
@@ -532,13 +532,13 @@ cac-configmgr drift detect ...
 
 ### 10.1 Error Categories
 
-| Category | Exemple | Action Utilisateur |
-|----------|---------|-------------------|
-| **Validation** | "Invalid YAML syntax" | Corriger fichier |
-| **Reference** | "Repo 'repo-x' not found" | Ajouter définition |
-| **API** | "Director API returned 503" | Réessayer plus tard |
-| **Permission** | "Insufficient permissions" | Vérifier token |
-| **Conflict** | "Resource modified by another" | Refresh et retry |
+| Category | Example | User Action |
+|----------|---------|-------------|
+| **Validation** | "Invalid YAML syntax" | Fix file |
+| **Reference** | "Repo 'repo-x' not found" | Add definition |
+| **API** | "Director API returned 503" | Retry later |
+| **Permission** | "Insufficient permissions" | Check token |
+| **Conflict** | "Resource modified by another" | Refresh and retry |
 
 ### 10.2 Error Format
 
@@ -561,11 +561,11 @@ Documentation:
 
 ## 11. Open Questions
 
-1. **State Management**: Faut-il un fichier d'état (terraform.tfstate-like) ou stateless pur ?
-2. **Concurrency**: Comment gérer apply simultanés sur même instance ?
-3. **Partial Apply**: Comment reprendre un apply partiellement failed ?
-4. **Locking**: Faut-il locker une instance pendant apply ?
-5. **Audit**: Où stocker l'historique des apply ?
+1. **State Management**: Need a state file (terraform.tfstate-like) or purely stateless?
+2. **Concurrency**: How to handle simultaneous applies on same instance?
+3. **Partial Apply**: How to resume a partially failed apply?
+4. **Locking**: Should we lock an instance during apply?
+5. **Audit**: Where to store apply history?
 
 ---
 
@@ -576,38 +576,38 @@ CAC-CONFIGMGR - QUICK REFERENCE
 ═══════════════════════════════════════════════════════════════
 
 VALIDATE
-  validate fleet.yaml                    Valider fichier
-  validate --template dir/               Valider template
-  validate --fleet f.yaml --topology t   Valider instance
+  validate fleet.yaml                    Validate file
+  validate --template dir/               Validate template
+  validate --fleet f.yaml --topology t   Validate instance
 
 PLAN
-  plan --fleet f.yaml --topology t       Voir changements
-  plan --detailed                        Avec détails complets
-  plan --output json                     Sortie machine
+  plan --fleet f.yaml --topology t       Show changes
+  plan --detailed                        With full details
+  plan --output json                     Machine output
 
 APPLY
-  apply --fleet f.yaml --topology t      Appliquer (interactif)
-  apply --auto-approve                   Sans confirmation
-  apply --dry-run                        Test sans modifier
-  apply --only repos                     Uniquement repos
+  apply --fleet f.yaml --topology t      Apply (interactive)
+  apply --auto-approve                   No confirmation
+  apply --dry-run                        Test without modifying
+  apply --only repos                     Only repos
 
 DRIFT
-  drift detect --fleet f --topology t    Détecter divergences
-  drift reconcile                        Réparer drift
-  drift watch --interval 5m              Surveillance continue
+  drift detect --fleet f --topology t    Detect divergences
+  drift reconcile                        Repair drift
+  drift watch --interval 5m              Continuous monitoring
 
 BACKUP
   backup --fleet f.yaml                  Backup config
-  backup --output-dir ./backups/         Avec timestamp
+  backup --output-dir ./backups/         With timestamp
 
-FLAGS GLOBAUX
-  --output json/yaml/text                Format sortie
-  --log-level debug/info/warn/error      Verbosité
-  --no-color                             Sans couleurs
-  --config ~/.config/cac-configmgr/      Config custom
+GLOBAL FLAGS
+  --output json/yaml/text                Output format
+  --log-level debug/info/warn/error      Verbosity
+  --no-color                             No colors
+  --config ~/.config/cac-configmgr/      Custom config
 
-ALIAS UTILES
-  cac-configmgr plan ... | less          Voir tout
+USEFUL ALIASES
+  cac-configmgr plan ... | less          View all
   cac-configmgr apply --auto-approve ... CI/CD
   cac-configmgr drift watch &            Background monitoring
 ```
