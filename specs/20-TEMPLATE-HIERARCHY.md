@@ -1878,3 +1878,192 @@ normalization_packages:
   - _id: pkg-1
   - _id: pkg-2
 ```
+
+## Appendix F: List Ordering Specification
+
+This appendix defines how element ordering works in lists (e.g., `routing_criteria`, `hiddenrepopath`, `normalization_packages`).
+
+### F.1 Default Ordering (Implicit)
+
+Without explicit ordering instructions:
+1. **Inherited elements** from parent (in their original order)
+2. **New elements** appended at the end
+
+```yaml
+# Parent
+routing_criteria:
+  - _id: crit-verbose    # Position 1
+  - _id: crit-debug      # Position 2
+
+# Child adds crit-powershell
+routing_criteria:
+  - _id: crit-powershell # Position 3 (appended at end)
+
+# Final result:
+# 1: crit-verbose (inherited)
+# 2: crit-debug (inherited)
+# 3: crit-powershell (new)
+```
+
+### F.2 Insertion with `after` and `before`
+
+Insert a new element relative to an existing one:
+
+```yaml
+# Child
+routing_criteria:
+  - _id: crit-powershell
+    _after: crit-verbose  # Insert AFTER crit-verbose
+    repo: repo-system-verbose
+    type: KeyPresent
+    key: PowershellCommand
+
+# Final result:
+# 1: crit-verbose
+# 2: crit-powershell (inserted after verbose)
+# 3: crit-debug
+```
+
+Or insert before:
+
+```yaml
+routing_criteria:
+  - _id: crit-security
+    _before: crit-verbose  # Insert BEFORE crit-verbose
+    repo: repo-secu
+    key: AlertLevel
+```
+
+### F.3 Absolute Positioning
+
+Force absolute position with `_position`:
+
+```yaml
+routing_criteria:
+  - _id: crit-important
+    _position: 1           # Force position 1 (first)
+    repo: repo-secu
+```
+
+Or use shortcuts:
+
+```yaml
+routing_criteria:
+  - _id: crit-urgent
+    _first: true           # Force first position
+    
+  - _id: crit-low-priority
+    _last: true            # Force last position (default behavior)
+```
+
+### F.4 Reordering Existing Elements
+
+Move inherited elements:
+
+```yaml
+# Child reorders inherited crit-debug to first position
+routing_criteria:
+  - _id: crit-debug
+    _first: true           # Move to position 1
+    
+  - _id: crit-new
+    _after: crit-debug     # Position 2
+```
+
+### F.5 Combined Operations
+
+Complex reordering with deletion:
+
+```yaml
+routing_criteria:
+  # Delete obsolete criterion
+  - _id: crit-obsolete
+    _action: delete
+    
+  # Move verbose to position 1
+  - _id: crit-verbose
+    _position: 1
+    
+  # Insert new after verbose
+  - _id: crit-powershell
+    _after: crit-verbose
+    repo: repo-system-verbose
+    key: PowershellCommand
+```
+
+### F.6 Ordering Attributes Reference
+
+| Attribute | Purpose | Example |
+|-----------|---------|---------|
+| `_after: _id` | Insert after element with _id | `_after: crit-verbose` |
+| `_before: _id` | Insert before element with _id | `_before: crit-debug` |
+| `_position: N` | Absolute position (1-based) | `_position: 2` |
+| `_first: true` | Force first position | `_first: true` |
+| `_last: true` | Force last position | `_last: true` |
+
+### F.7 Precedence Rules
+
+When multiple ordering instructions conflict:
+1. `_action: delete` applied first
+2. `_position` (absolute) takes priority
+3. `_first` / `_last` applied next
+4. `_before` / `_after` applied last
+5. Elements without ordering attributes keep their relative order
+
+### F.8 Example: Complete Reordering Scenario
+
+**Parent template**:
+```yaml
+routingPolicies:
+  - policy_name: rp-windows
+    _id: rp-windows
+    routing_criteria:
+      - _id: crit-info
+        repo: repo-system
+        key: Level
+        value: Info
+        
+      - _id: crit-warning
+        repo: repo-system-verbose
+        key: Level
+        value: Warning
+        
+      - _id: crit-error
+        repo: repo-system-verbose
+        key: Level
+        value: Error
+```
+
+**Child template** (MSSP modifications):
+```yaml
+routingPolicies:
+  - policy_name: rp-windows
+    _id: rp-windows
+    routing_criteria:
+      # Delete info level (too verbose)
+      - _id: crit-info
+        _action: delete
+        
+      # Move error checking first (performance)
+      - _id: crit-error
+        _first: true
+        
+      # Add critical security check after errors
+      - _id: crit-security
+        _after: crit-error
+        repo: repo-secu
+        key: EventType
+        value: Security
+        
+      # Keep warning at end
+      - _id: crit-warning
+        _last: true
+```
+
+**Final resolved order**:
+1. `crit-error` (moved to first)
+2. `crit-security` (new, after error)
+3. `crit-warning` (kept, moved to last)
+4. `crit-info` (deleted)
+
+This ordering system provides maximum flexibility while maintaining predictable behavior.
