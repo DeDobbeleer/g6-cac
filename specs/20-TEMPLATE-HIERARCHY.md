@@ -109,8 +109,14 @@ repos:
 | `_id` only in parent | **Inherit**: Element kept as-is |
 | `_id` only in child | **Append**: New element added to list |
 | `_action: delete` on existing `_id` | **Remove**: Element removed from list |
+| `_action: reorder` with `after: _id` | **Reorder**: Change element position in list |
 
-**Important**: `_id` fields are **internal to CaC-ConfigMgr** and are **filtered out** before sending to LogPoint API.
+**Order is Significant**: The order of elements in lists (e.g., `routing_criteria`, `hiddenrepopath`) is preserved and can be modified.
+- By default, inherited elements keep their relative order
+- New elements are appended at the end
+- Use `_action: reorder` to change positions
+
+**Important**: `_id` and `_action` fields are **internal to CaC-ConfigMgr** and are **filtered out** before sending to LogPoint API.
 
 ---
 
@@ -1693,4 +1699,182 @@ spec:
           key: EventType
           value: Verbose
           # Override: different repo or retention logic
+```
+
+## Appendix E: Normalization & Enrichment Policies
+
+### E.1 Normalization Policies (NP)
+
+**API Constraint**: Normalization Packages and Compiled Normalizers are **system-level resources** (read-only). They cannot be created by CaC-ConfigMgr, only referenced.
+
+**LogPoint Golden Template**:
+```yaml
+spec:
+  normalizationPolicies:
+    - policy_name: np-windows
+      _id: np-windows
+      normalization_packages:
+        - _id: pkg-windows
+          name: "Windows"
+        - _id: pkg-winsec
+          name: "WinSecurity"
+      compiled_normalizer: "WindowsCompiled"
+      
+    - policy_name: np-linux
+      _id: np-linux
+      normalization_packages:
+        - _id: pkg-syslog
+          name: "Syslog"
+        - _id: pkg-auth
+          name: "LinuxAuth"
+      compiled_normalizer: ""
+      
+    - policy_name: np-firewall-generic
+      _id: np-firewall-generic
+      normalization_packages:
+        - _id: pkg-common
+          name: "CommonFirewall"
+```
+
+**MSSP Extension**:
+```yaml
+spec:
+  normalizationPolicies:
+    # Windows: Add firewall package
+    - policy_name: np-windows
+      _id: np-windows
+      normalization_packages:
+        - _id: pkg-windows
+          name: "Windows"
+        - _id: pkg-winsec
+          name: "WinSecurity"
+        - _id: pkg-winfw
+          name: "WinFirewall"
+      compiled_normalizer: "WindowsCompiled"
+      
+    # Fortinet: Specific packages
+    - policy_name: np-fortinet
+      _id: np-firewall-generic
+      normalization_packages:
+        - _id: pkg-fortinet
+          name: "FortiGate"
+        - _id: pkg-utm
+          name: "FortiUTM"
+```
+
+### E.2 Enrichment Policies (EP)
+
+**API Constraint**: Enrichment Sources are **read-only** (created via UI). Validation FAILS if referenced source doesn't exist.
+
+**LogPoint Golden Template**:
+```yaml
+spec:
+  enrichmentPolicies:
+    - name: ep-threat-intel
+      _id: ep-threat-intel
+      specifications:
+        - _id: spec-misp
+          source: "ThreatIntel_MISP"
+          criteria:
+            - type: "KeyPresent"
+              key: "source_address"
+          rules:
+            - category: "ThreatIntelligence"
+              source_key: "ip"
+              event_key: "source_address"
+              operation: "Equals"
+              type: "string"
+              
+        - _id: spec-abuseipdb
+          source: "AbuseIPDB"
+          criteria:
+            - type: "KeyPresent"
+              key: "source_address"
+          rules:
+            - category: "Reputation"
+              source_key: "abuse_score"
+              event_key: "reputation_score"
+              operation: "Equals"
+              type: "integer"
+```
+
+**MSSP Extension**:
+```yaml
+spec:
+  enrichmentPolicies:
+    # Add GeoIP to threat intel
+    - name: ep-threat-intel
+      _id: ep-threat-intel
+      specifications:
+        - _id: spec-misp
+        - _id: spec-abuseipdb
+        - _id: spec-geoip
+          source: "GeoIP_MaxMind"
+          criteria:
+            - type: "KeyPresent"
+              key: "source_address"
+          rules:
+            - category: "GeoLocation"
+              source_key: "country"
+              event_key: "src_country"
+              operation: "Equals"
+              type: "string"
+            - category: "GeoLocation"
+              source_key: "city"
+              event_key: "src_city"
+              operation: "Equals"
+              type: "string"
+              
+    # Active Directory enrichment
+    - name: ep-active-directory
+      _id: ep-active-directory
+      specifications:
+        - _id: spec-ad-users
+          source: "ActiveDirectory"
+          criteria:
+            - type: "KeyPresent"
+              key: "username"
+          rules:
+            - category: "UserContext"
+              source_key: "department"
+              event_key: "user_dept"
+              operation: "Equals"
+              type: "string"
+```
+
+### E.3 Validation Rules
+
+**For Normalization Policies**:
+1. **Package References**: All `normalization_packages` must exist on target SIEM
+2. **Validation**: Query `/NormalizationPackage/List` to verify
+3. **Failure**: If package doesn't exist → validation FAIL
+
+**For Enrichment Policies**:
+1. **Source References**: All `source` values must exist on target SIEM
+2. **Validation**: Query `/EnrichmentSource/List` to verify
+3. **Failure**: If source doesn't exist → validation FAIL (cannot auto-create)
+4. **UI Note**: Sources must be created via Director UI before deployment
+
+### E.4 Order in Lists
+
+**Rule**: The order of `normalization_packages` and `specifications` matters.
+- Packages are applied in order listed
+- Enrichment specifications are evaluated in order
+- Use `_action: reorder` to modify order in child templates
+
+Example:
+```yaml
+# Parent
+normalization_packages:
+  - _id: pkg-1
+  - _id: pkg-2
+  - _id: pkg-3
+
+# Child: Reorder pkg-3 to first position
+normalization_packages:
+  - _id: pkg-3
+    _action: reorder
+    position: first
+  - _id: pkg-1
+  - _id: pkg-2
 ```
