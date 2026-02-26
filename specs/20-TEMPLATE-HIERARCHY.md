@@ -40,31 +40,101 @@ This system eliminates configuration duplication while ensuring consistency, com
 
 ```
 LEVEL 1: LOGPOINT GOLDEN (Provider)
-├── Vendor-maintained
+├── Vendor-maintained (e.g., golden-base, golden-pci-dss)
 ├── Security-hardened defaults
 └── API-optimized configurations
-    ↓ extends
+    ↓ extends (cross-level)
     
 LEVEL 2: MSSP BASE (Organization)
 ├── MSSP-specific standards
 ├── Infrastructure conventions (mount points, naming)
-└── Compliance overlays
-    ↓ extends
+├── Compliance overlays
+│   └── Intra-level: base → banking-addon
+└── ↓ extends (cross-level)
     
 LEVEL 3: DEPLOYMENT PROFILE (Pattern)
-├── Simple: Single AIO, basic retention
-├── Medium: Distributed, standard rotation
-├── Enterprise: Multi-cluster, complex retention policies
-└── Custom: MSSP-defined patterns
-    ↓ extends
+├── Simple, Medium, Enterprise, Custom
+│   └── Intra-level: Can extend other profiles
+└── ↓ extends (cross-level)
     
 LEVEL 4: INSTANCE (Concrete)
 ├── Environment-specific values (prod/staging/dev)
-├── Customer-specific exceptions
-└── Deployment targets (Fleet references)
+└── Customer-specific exceptions
 ```
 
-### 3.2 Inheritance Mechanisms
+**Two Types of Inheritance:**
+1. **Cross-Level**: Parent from level N-1 → Child at level N (default)
+2. **Intra-Level**: Template at level N → Another template at same level N
+
+### 3.2 Cross-Level vs Intra-Level Inheritance
+
+#### Cross-Level Inheritance (Vertical)
+
+Standard inheritance from parent level N-1 to child level N via `extends`:
+
+```yaml
+# Level 2 extends Level 1
+metadata:
+  name: acme-base
+  extends: logpoint/golden-base  # Level 1 → Level 2
+```
+
+```yaml
+# Level 4 extends Level 3
+metadata:
+  name: banque-dupont-prod
+  extends: acme-corp/profiles/enterprise  # Level 3 → Level 4
+```
+
+#### Intra-Level Inheritance (Horizontal)
+
+Templates at the **same level** can extend each other. Useful for:
+- Compliance add-ons (PCI-DSS, ISO27001) that extend base templates
+- Profile variants (banking-addon extends enterprise base)
+
+```yaml
+# templates/logpoint/golden-pci-dss/repos.yaml
+metadata:
+  name: golden-pci-dss
+  extends: logpoint/golden-base  # Level 1 → Level 1 (intra-level)
+  
+spec:
+  repos:
+    - name: repo-secu
+      hiddenrepopath:
+        - _id: nfs-tier
+          path: /opt/immune/storage-nfs
+          retention: 2555  # 7 years PCI requirement
+```
+
+```yaml
+# templates/mssp/acme-corp/profiles/banking-addon/routing-policies.yaml
+metadata:
+  name: acme-banking-addon
+  extends: acme-corp/profiles/enterprise  # Level 3 → Level 3 (intra-level)
+  
+spec:
+  routingPolicies:
+    - policy_name: rp-windows
+      _id: rp-windows
+      routing_criteria:
+        - _id: crit-audit  # Additional banking audit criterion
+          repo: repo-secu-verbose
+          key: EventID
+          value: "4663"  # Object access audit
+```
+
+**Resolution Order with Intra-Level:**
+```
+logpoint/golden-base
+└── (intra) logpoint/golden-pci-dss
+    └── (cross) mssp/acme-corp/base
+        └── (intra) mssp/acme-corp/profiles/enterprise
+            └── (intra) mssp/acme-corp/profiles/banking-addon
+                └── (cross) instances/banque-dupont/prod
+```
+
+### 3.3 Inheritance Mechanisms
 
 | Mechanism | Description | Use Case |
 |-----------|-------------|----------|
@@ -74,7 +144,7 @@ LEVEL 4: INSTANCE (Concrete)
 | **Patch** | Partial modification of parent resource | Add a routing criteria, extend list |
 | **Delete** | Remove resource from parent (explicit) | Disable default repo for specific case |
 
-### 3.3 Resource Identification (Top Level)
+### 3.4 Resource Identification (Top Level)
 
 Top-level resources are identified by their **kind + name** tuple:
 ```yaml
@@ -85,9 +155,11 @@ name: repo-secu  # ← Unique identifier for inheritance
 Same `name` in child = **Merge/Patch** (see 3.4)  
 Different `name` in child = **Append**
 
-### 3.4 Template IDs for List Matching
+### 3.5 List Merging & Ordering
 
-When resources contain **lists** (e.g., `hiddenrepopath`, `routing_criteria`), elements are matched using **_id** fields:
+When resources contain **lists** (e.g., `hiddenrepopath`, `routing_criteria`), elements are matched using **_id** fields.
+
+#### 3.5.1 Template IDs for Element Matching
 
 ```yaml
 repos:
@@ -109,14 +181,84 @@ repos:
 | `_id` only in parent | **Inherit**: Element kept as-is |
 | `_id` only in child | **Append**: New element added to list |
 | `_action: delete` on existing `_id` | **Remove**: Element removed from list |
-| `_action: reorder` with `after: _id` | **Reorder**: Change element position in list |
-
-**Order is Significant**: The order of elements in lists (e.g., `routing_criteria`, `hiddenrepopath`) is preserved and can be modified.
-- By default, inherited elements keep their relative order
-- New elements are appended at the end
-- Use `_action: reorder` to change positions
 
 **Important**: `_id` and `_action` fields are **internal to CaC-ConfigMgr** and are **filtered out** before sending to LogPoint API.
+
+#### 3.5.2 Default Ordering Behavior
+
+Without explicit instructions:
+1. **Inherited elements** keep their relative order from parent
+2. **New elements** are appended at the end
+
+```yaml
+# Parent
+catch_all: repo-system
+routing_criteria:
+  - _id: crit-verbose    # Position 1
+  - _id: crit-debug      # Position 2
+
+# Child adds crit-powershell
+routing_criteria:
+  - _id: crit-powershell # Position 3 (appended)
+
+# Final: 1: crit-verbose, 2: crit-debug, 3: crit-powershell
+```
+
+#### 3.5.3 Explicit Ordering Instructions
+
+Control element position with ordering attributes:
+
+| Attribute | Purpose | Example |
+|-----------|---------|---------|
+| `_after: _id` | Insert after element | `_after: crit-verbose` |
+| `_before: _id` | Insert before element | `_before: crit-debug` |
+| `_position: N` | Absolute position (1-based) | `_position: 1` |
+| `_first: true` | Force first position | `_first: true` |
+| `_last: true` | Force last position | `_last: true` |
+
+**Examples:**
+
+```yaml
+# Insert after existing element
+routing_criteria:
+  - _id: crit-powershell
+    _after: crit-verbose     # Insert after crit-verbose
+    repo: repo-system-verbose
+    key: PowershellCommand
+```
+
+```yaml
+# Move inherited element to first position
+routing_criteria:
+  - _id: crit-debug
+    _first: true             # Move to position 1
+  - _id: crit-new
+    _after: crit-debug       # Position 2
+```
+
+```yaml
+# Combined operations
+catch_all: repo-system
+routing_criteria:
+  - _id: crit-obsolete
+    _action: delete          # Remove first
+    
+  - _id: crit-verbose
+    _position: 1             # Force position 1
+    
+  - _id: crit-powershell
+    _after: crit-verbose     # Position 2
+    repo: repo-system-verbose
+    key: PowershellCommand
+```
+
+#### 3.5.4 Precedence Rules
+
+When ordering instructions conflict:
+1. `_action: delete` applied first
+2. `_position` (absolute) takes priority
+3. `_first` / `_last` applied next
+4. `_before` / `_after` applied last
 
 ---
 
@@ -1906,580 +2048,25 @@ spec:
 
 ### E.4 Order in Lists
 
-**Rule**: The order of `normalization_packages` and `specifications` matters.
+The order of `normalization_packages` and `specifications` matters:
 - Packages are applied in order listed
 - Enrichment specifications are evaluated in order
-- Use `_action: reorder` to modify order in child templates
 
-Example:
-```yaml
-# Parent
-normalization_packages:
-  - _id: pkg-1
-  - _id: pkg-2
-  - _id: pkg-3
+See **Section 3.5** for ordering mechanisms (`_after`, `_before`, `_position`, etc.).
 
-# Child: Reorder pkg-3 to first position
-normalization_packages:
-  - _id: pkg-3
-    _action: reorder
-    position: first
-  - _id: pkg-1
-  - _id: pkg-2
-```
 
-## Appendix F: List Ordering Specification
+## Appendix F: Ordering Reference (Summary)
 
-This appendix defines how element ordering works in lists (e.g., `routing_criteria`, `hiddenrepopath`, `normalization_packages`).
+See **Section 3.5** for complete ordering specification.
 
-### F.1 Default Ordering (Implicit)
+Quick reference:
 
-Without explicit ordering instructions:
-1. **Inherited elements** from parent (in their original order)
-2. **New elements** appended at the end
+| Attribute | Purpose |
+|-----------|---------|
+| `_after: _id` | Insert after element |
+| `_before: _id` | Insert before element |
+| `_position: N` | Absolute position (1-based) |
+| `_first: true` | Force first position |
+| `_last: true` | Force last position |
 
-```yaml
-# Parent
-routing_criteria:
-  - _id: crit-verbose    # Position 1
-  - _id: crit-debug      # Position 2
-
-# Child adds crit-powershell
-routing_criteria:
-  - _id: crit-powershell # Position 3 (appended at end)
-
-# Final result:
-# 1: crit-verbose (inherited)
-# 2: crit-debug (inherited)
-# 3: crit-powershell (new)
-```
-
-### F.2 Insertion with `after` and `before`
-
-Insert a new element relative to an existing one:
-
-```yaml
-# Child
-routing_criteria:
-  - _id: crit-powershell
-    _after: crit-verbose  # Insert AFTER crit-verbose
-    repo: repo-system-verbose
-    type: KeyPresent
-    key: PowershellCommand
-
-# Final result:
-# 1: crit-verbose
-# 2: crit-powershell (inserted after verbose)
-# 3: crit-debug
-```
-
-Or insert before:
-
-```yaml
-routing_criteria:
-  - _id: crit-security
-    _before: crit-verbose  # Insert BEFORE crit-verbose
-    repo: repo-secu
-    key: AlertLevel
-```
-
-### F.3 Absolute Positioning
-
-Force absolute position with `_position`:
-
-```yaml
-routing_criteria:
-  - _id: crit-important
-    _position: 1           # Force position 1 (first)
-    repo: repo-secu
-```
-
-Or use shortcuts:
-
-```yaml
-routing_criteria:
-  - _id: crit-urgent
-    _first: true           # Force first position
-    
-  - _id: crit-low-priority
-    _last: true            # Force last position (default behavior)
-```
-
-### F.4 Reordering Existing Elements
-
-Move inherited elements:
-
-```yaml
-# Child reorders inherited crit-debug to first position
-routing_criteria:
-  - _id: crit-debug
-    _first: true           # Move to position 1
-    
-  - _id: crit-new
-    _after: crit-debug     # Position 2
-```
-
-### F.5 Combined Operations
-
-Complex reordering with deletion:
-
-```yaml
-routing_criteria:
-  # Delete obsolete criterion
-  - _id: crit-obsolete
-    _action: delete
-    
-  # Move verbose to position 1
-  - _id: crit-verbose
-    _position: 1
-    
-  # Insert new after verbose
-  - _id: crit-powershell
-    _after: crit-verbose
-    repo: repo-system-verbose
-    key: PowershellCommand
-```
-
-### F.6 Ordering Attributes Reference
-
-| Attribute | Purpose | Example |
-|-----------|---------|---------|
-| `_after: _id` | Insert after element with _id | `_after: crit-verbose` |
-| `_before: _id` | Insert before element with _id | `_before: crit-debug` |
-| `_position: N` | Absolute position (1-based) | `_position: 2` |
-| `_first: true` | Force first position | `_first: true` |
-| `_last: true` | Force last position | `_last: true` |
-
-### F.7 Precedence Rules
-
-When multiple ordering instructions conflict:
-1. `_action: delete` applied first
-2. `_position` (absolute) takes priority
-3. `_first` / `_last` applied next
-4. `_before` / `_after` applied last
-5. Elements without ordering attributes keep their relative order
-
-### F.8 Example: Complete Reordering Scenario
-
-**Parent template**:
-```yaml
-routingPolicies:
-  - policy_name: rp-windows
-    _id: rp-windows
-    routing_criteria:
-      - _id: crit-info
-        repo: repo-system
-        key: Level
-        value: Info
-        
-      - _id: crit-warning
-        repo: repo-system-verbose
-        key: Level
-        value: Warning
-        
-      - _id: crit-error
-        repo: repo-system-verbose
-        key: Level
-        value: Error
-```
-
-**Child template** (MSSP modifications):
-```yaml
-routingPolicies:
-  - policy_name: rp-windows
-    _id: rp-windows
-    routing_criteria:
-      # Delete info level (too verbose)
-      - _id: crit-info
-        _action: delete
-        
-      # Move error checking first (performance)
-      - _id: crit-error
-        _first: true
-        
-      # Add critical security check after errors
-      - _id: crit-security
-        _after: crit-error
-        repo: repo-secu
-        key: EventType
-        value: Security
-        
-      # Keep warning at end
-      - _id: crit-warning
-        _last: true
-```
-
-**Final resolved order**:
-1. `crit-error` (moved to first)
-2. `crit-security` (new, after error)
-3. `crit-warning` (kept, moved to last)
-4. `crit-info` (deleted)
-
-This ordering system provides maximum flexibility while maintaining predictable behavior.
-## File Structure Specification
-
-### Principle
-Each hierarchical level has the **same folder structure** with **one file per configuration type**.
-
-### Directory Structure
-
-```
-templates/
-├── logpoint/                          # Level 1: LogPoint (multiple variants)
-│   ├── golden-base/                   # ← One folder per template variant
-│   │   ├── metadata.yaml              # Template metadata (name, version, extends)
-│   │   ├── repos.yaml                 # All repositories
-│   │   ├── routing-policies.yaml      # All routing policies
-│   │   ├── normalization-policies.yaml # All normalization policies
-│   │   ├── enrichment-policies.yaml   # All enrichment policies
-│   │   └── processing-policies.yaml   # All processing policies
-│   │
-│   ├── golden-pci-dss/                # ← PCI compliance variant
-│   │   ├── metadata.yaml
-│   │   ├── repos.yaml
-│   │   ├── routing-policies.yaml
-│   │   ├── normalization-policies.yaml
-│   │   ├── enrichment-policies.yaml
-│   │   └── processing-policies.yaml
-│   │
-│   └── golden-iso27001/               # ← ISO 27001 variant
-│       ├── metadata.yaml
-│       ├── repos.yaml
-│       ├── routing-policies.yaml
-│       ├── normalization-policies.yaml
-│       ├── enrichment-policies.yaml
-│       └── processing-policies.yaml
-│
-├── mssp/                              # Level 2: MSSP
-│   └── acme-corp/
-│       ├── base/                      # ← Same structure as LogPoint
-│       │   ├── metadata.yaml          # extends: logpoint/golden-pci-dss
-│       │   ├── repos.yaml             # Overrides/additions for repos
-│       │   ├── routing-policies.yaml  # Overrides/additions for RP
-│       │   ├── normalization-policies.yaml
-│       │   ├── enrichment-policies.yaml
-│       │   └── processing-policies.yaml
-│       │
-│       └── profiles/                  # Level 3: Profiles
-│           ├── simple.yaml            # ← Single file per profile
-│           └── enterprise.yaml        # (no subdirectories)
-│
-└── instances/                         # Level 4: Instances (flat)
-    └── client-dupont/
-        ├── prod.yaml                  # Single file per instance
-        └── staging.yaml
-```
-
-### Level 1: LogPoint Templates
-
-**Multiple templates possible** (golden-base, golden-pci-dss, golden-iso27001, etc.)
-
-Each template variant is a folder with all configuration files.
-
-```yaml
-# logpoint/golden-base/metadata.yaml
-name: golden-base
-version: "1.0.0"
-provider: logpoint
-description: "Standard MSSP baseline template"
-# No 'extends' - this is the root
-```
-
-### Level 2: MSSP Base
-
-**Multiple MSSP organizations possible** (acme-corp, other-mssp, etc.)
-
-Each MSSP can have multiple base templates.
-
-```yaml
-# mssp/acme-corp/base/metadata.yaml
-name: acme-base
-version: "1.0.0"
-provider: acme-mssp
-extends: logpoint/golden-pci-dss  # ← Choose parent here
-```
-
-```yaml
-# mssp/competitor-mssp/base/metadata.yaml
-name: competitor-base
-version: "1.0.0"
-provider: competitor-mssp
-extends: logpoint/golden-iso27001  # Different parent
-```
-
-```yaml
-# mssp/acme-corp/base/repos.yaml
-spec:
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 180  # Override from LogPoint
-```
-
-### Level 3: Profiles
-
-**Multiple profiles possible per MSSP** (simple, enterprise, compliance, banking, etc.)
-
-Single YAML file per profile, no subdirectories.
-
-```yaml
-# mssp/acme-corp/profiles/enterprise.yaml
-name: enterprise
-extends: ../base  # Extends MSSP base
-
-spec:
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 365  # Override for enterprise
-```
-
-```yaml
-# mssp/acme-corp/profiles/banking.yaml
-name: banking
-extends: ../base
-
-spec:
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 1095  # Banking compliance
-```
-
-### Level 4: Instances
-
-**Multiple instances per client** (prod, staging, dr, test, etc.)
-
-Single YAML file per instance/environment.
-
-```yaml
-# instances/client-dupont/prod.yaml
-name: dupont-prod
-extends: mssp/acme-corp/profiles/enterprise
-
-spec:
-  vars:
-    clientCode: DUPONT
-    
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 2555  # Final override
-```
-
-```yaml
-# instances/client-dupont/staging.yaml
-name: dupont-staging
-extends: mssp/acme-corp/profiles/enterprise
-
-spec:
-  vars:
-    clientCode: DUPONT
-    environment: staging
-    
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 90  # Shorter for staging
-```
-
-### Resolution Rules
-
-1. **Level 1 (LogPoint)**: Complete configuration set
-2. **Level 2 (MSSP Base)**: Inherits from LogPoint, can override/add
-3. **Level 3 (Profiles)**: Inherits from MSSP Base, can override/add  
-4. **Level 4 (Instances)**: Inherits from Profile, can override/add
-
-All files at each level are resolved independently:
-- `repos.yaml` from all levels merged
-- `routing-policies.yaml` from all levels merged
-- etc.
-
-### Practical Example: MSSP Using LogPoint NP As-Is
-
-**Scenario**: You are MSSP "Acme Corp" and LogPoint's Normalization Policies are perfect for your needs. You don't want to modify them.
-
-**What you do**: Simply don't create `normalization-policies.yaml` in your MSSP folder!
-
-```
-templates/
-├── logpoint/
-│   └── golden-base/
-│       ├── metadata.yaml
-│       ├── repos.yaml
-│       ├── routing-policies.yaml
-│       ├── normalization-policies.yaml   # ← LogPoint provides this
-│       └── enrichment-policies.yaml
-│
-└── mssp/
-    └── acme-corp/
-        └── base/
-            ├── metadata.yaml
-            ├── repos.yaml                   # ← You override repos
-            ├── routing-policies.yaml        # ← You override routing
-            └── enrichment-policies.yaml     # ← You override enrichment
-            # NO normalization-policies.yaml  # ← You inherit LogPoint's NP entirely
-```
-
-**Resolution result**:
-- **Repos**: from `mssp/acme-corp/base/repos.yaml` (your overrides)
-- **Routing Policies**: from `mssp/acme-corp/base/routing-policies.yaml` (your overrides)
-- **Normalization Policies**: from `logpoint/golden-base/normalization-policies.yaml` (inherited as-is)
-- **Enrichment Policies**: from `mssp/acme-corp/base/enrichment-policies.yaml` (your overrides)
-
-**If you later need to modify just one NP**:
-
-Create `mssp/acme-corp/base/normalization-policies.yaml` with only what you want to change:
-
-```yaml
-# mssp/acme-corp/base/normalization-policies.yaml
-spec:
-  normalizationPolicies:
-    - policy_name: np-windows
-      _id: np-windows
-      normalization_packages:
-        - _id: pkg-windows
-          name: "Windows"
-        - _id: pkg-winsec
-          name: "WinSecurity"
-        - _id: pkg-winfw                    # ← Only add this new package
-          name: "WinFirewall"
-      compiled_normalizer:
-        - _id: cnf-windows
-          name: "WindowsCompiled"
-```
-
-**Result**: All other NPs (np-linux, np-fortinet, etc.) are still inherited from LogPoint. Only np-windows is merged with your addition.
-
-### Intra-Level Inheritance (Add-ons)
-
-You can create templates that inherit from other templates **within the same level**, avoiding duplication.
-
-#### LogPoint Intra-Level Inheritance
-
-```
-templates/logpoint/
-├── golden-base/              # ← Root template
-│   ├── metadata.yaml         # No extends (root)
-│   ├── repos.yaml
-│   ├── routing-policies.yaml
-│   └── ...
-│
-├── golden-pci-dss/           # ← Inherits from golden-base
-│   ├── metadata.yaml         # extends: logpoint/golden-base
-│   ├── repos.yaml            # Only PCI-specific overrides
-│   └── ...
-│
-└── golden-iso27001/          # ← Inherits from golden-base
-    ├── metadata.yaml         # extends: logpoint/golden-base
-    ├── repos.yaml            # Only ISO-specific overrides
-    └── ...
-```
-
-**LogPoint PCI example**:
-```yaml
-# logpoint/golden-pci-dss/metadata.yaml
-name: golden-pci-dss
-version: "1.0.0"
-provider: logpoint
-extends: logpoint/golden-base          # ← Inherits from base
-description: "PCI DSS compliance template"
-```
-
-```yaml
-# logpoint/golden-pci-dss/repos.yaml
-spec:
-  repos:
-    - name: repo-secu
-      _id: repo-secu
-      hiddenrepopath:
-        - _id: primary
-          retention: 3650          # ← PCI requires 10 years
-```
-
-Result: `golden-pci-dss` = `golden-base` + PCI-specific overrides.
-
-#### MSSP Intra-Level Inheritance
-
-```
-templates/mssp/acme-corp/
-├── base/                     # ← Root MSSP template
-│   ├── metadata.yaml         # extends: logpoint/golden-base
-│   ├── repos.yaml
-│   └── ...
-│
-├── pci-addon/                # ← Inherits from acme-corp/base
-│   ├── metadata.yaml         # extends: mssp/acme-corp/base
-│   └── repos.yaml            # PCI-specific additions
-│
-└── banking-addon/            # ← Inherits from acme-corp/base
-    ├── metadata.yaml         # extends: mssp/acme-corp/base
-    └── repos.yaml            # Banking-specific additions
-```
-
-**MSSP PCI addon example**:
-```yaml
-# mssp/acme-corp/pci-addon/metadata.yaml
-name: acme-pci
-version: "1.0.0"
-provider: acme-mssp
-extends: mssp/acme-corp/base         # ← Inherits from MSSP base
-description: "Acme PCI DSS compliance"
-```
-
-```yaml
-# mssp/acme-corp/pci-addon/repos.yaml
-spec:
-  repos:
-    - name: repo-pci-audit
-      _id: repo-pci-audit          # ← New repo for PCI audit
-      hiddenrepopath:
-        - _id: primary
-          path: /opt/immune/storage
-          retention: 2555
-```
-
-**Client uses MSSP PCI addon**:
-```yaml
-# instances/bank-xyz/prod.yaml
-name: bank-xyz-prod
-extends: mssp/acme-corp/pci-addon   # ← Gets: LogPoint base + MSSP base + PCI addon
-
-spec:
-  vars:
-    clientCode: BANK-XYZ
-```
-
-#### Chain of Inheritance Example
-
-Full chain for a banking client with PCI:
-```
-logpoint/golden-base/
-  ↓ extends
-logpoint/golden-pci-dss/
-  ↓ extends  
-mssp/acme-corp/base/
-  ↓ extends
-mssp/acme-corp/banking-addon/
-  ↓ extends
-instances/bank-abc/prod.yaml
-```
-
-Result includes:
-1. LogPoint golden-base (root)
-2. LogPoint golden-pci-dss overrides
-3. MSSP acme-corp/base overrides  
-4. MSSP banking-addon overrides
-5. Instance-specific overrides
-
-This allows maximum reusability without duplication!
+Precedence: `delete` → `_position` → `_first`/`_last` → `_before`/`_after`
