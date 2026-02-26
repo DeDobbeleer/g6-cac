@@ -35,8 +35,8 @@
 - [x] **Template Hierarchy**: ✅ COMPLETE with Template ID mechanism
 - [x] **Routing Policies**: ✅ COMPLETE (vendor-specific, with drop/filter support)
 - [ ] **Processing Policies**: To be defined (normalization → enrichment → processing)
-- [ ] **Alert Rules**: To be defined
 - [ ] **Workflow CLI**: Commands and state transitions to be defined
+- [ ] **Alert Rules**: To be defined (post-MVP)
 
 ### 3. DirSync Reference
 - [x] Director API documented (via DirSync)
@@ -85,8 +85,8 @@
 
 1. ~~**Validate Fleet spec**~~ ✅ COMPLETE
 2. ~~**Define Configuration (Topology)**~~ ✅ COMPLETE (Template Hierarchy)
-3. **Define Processing Policies** (normalization → enrichment → processing pipeline)
-4. **Define Alert Rules** (detection rules)
-5. **Define CLI Workflow** (commands: validate, plan, apply, drift)
-6. **Create Pydantic models** from validated specs
-7. **Implement Provider interface** for Director API
+3. ~~**Define Processing Policies**~~ 🚧 DRAFT CREATED (needs review)
+4. ~~**Define CLI Workflow**~~ 🚧 DRAFT CREATED (needs review)
+5. **Create Pydantic models** from validated specs
+6. **Implement Provider interface** for Director API
+7. **Define Alert Rules** (detection rules - post-MVP)
