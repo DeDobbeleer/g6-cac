@@ -2315,3 +2315,126 @@ spec:
 ```
 
 **Result**: All other NPs (np-linux, np-fortinet, etc.) are still inherited from LogPoint. Only np-windows is merged with your addition.
+
+### Intra-Level Inheritance (Add-ons)
+
+You can create templates that inherit from other templates **within the same level**, avoiding duplication.
+
+#### LogPoint Intra-Level Inheritance
+
+```
+templates/logpoint/
+├── golden-base/              # ← Root template
+│   ├── metadata.yaml         # No extends (root)
+│   ├── repos.yaml
+│   ├── routing-policies.yaml
+│   └── ...
+│
+├── golden-pci-dss/           # ← Inherits from golden-base
+│   ├── metadata.yaml         # extends: logpoint/golden-base
+│   ├── repos.yaml            # Only PCI-specific overrides
+│   └── ...
+│
+└── golden-iso27001/          # ← Inherits from golden-base
+    ├── metadata.yaml         # extends: logpoint/golden-base
+    ├── repos.yaml            # Only ISO-specific overrides
+    └── ...
+```
+
+**LogPoint PCI example**:
+```yaml
+# logpoint/golden-pci-dss/metadata.yaml
+name: golden-pci-dss
+version: "1.0.0"
+provider: logpoint
+extends: logpoint/golden-base          # ← Inherits from base
+description: "PCI DSS compliance template"
+```
+
+```yaml
+# logpoint/golden-pci-dss/repos.yaml
+spec:
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 3650          # ← PCI requires 10 years
+```
+
+Result: `golden-pci-dss` = `golden-base` + PCI-specific overrides.
+
+#### MSSP Intra-Level Inheritance
+
+```
+templates/mssp/acme-corp/
+├── base/                     # ← Root MSSP template
+│   ├── metadata.yaml         # extends: logpoint/golden-base
+│   ├── repos.yaml
+│   └── ...
+│
+├── pci-addon/                # ← Inherits from acme-corp/base
+│   ├── metadata.yaml         # extends: mssp/acme-corp/base
+│   └── repos.yaml            # PCI-specific additions
+│
+└── banking-addon/            # ← Inherits from acme-corp/base
+    ├── metadata.yaml         # extends: mssp/acme-corp/base
+    └── repos.yaml            # Banking-specific additions
+```
+
+**MSSP PCI addon example**:
+```yaml
+# mssp/acme-corp/pci-addon/metadata.yaml
+name: acme-pci
+version: "1.0.0"
+provider: acme-mssp
+extends: mssp/acme-corp/base         # ← Inherits from MSSP base
+description: "Acme PCI DSS compliance"
+```
+
+```yaml
+# mssp/acme-corp/pci-addon/repos.yaml
+spec:
+  repos:
+    - name: repo-pci-audit
+      _id: repo-pci-audit          # ← New repo for PCI audit
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 2555
+```
+
+**Client uses MSSP PCI addon**:
+```yaml
+# instances/bank-xyz/prod.yaml
+name: bank-xyz-prod
+extends: mssp/acme-corp/pci-addon   # ← Gets: LogPoint base + MSSP base + PCI addon
+
+spec:
+  vars:
+    clientCode: BANK-XYZ
+```
+
+#### Chain of Inheritance Example
+
+Full chain for a banking client with PCI:
+```
+logpoint/golden-base/
+  ↓ extends
+logpoint/golden-pci-dss/
+  ↓ extends  
+mssp/acme-corp/base/
+  ↓ extends
+mssp/acme-corp/banking-addon/
+  ↓ extends
+instances/bank-abc/prod.yaml
+```
+
+Result includes:
+1. LogPoint golden-base (root)
+2. LogPoint golden-pci-dss overrides
+3. MSSP acme-corp/base overrides  
+4. MSSP banking-addon overrides
+5. Instance-specific overrides
+
+This allows maximum reusability without duplication!
