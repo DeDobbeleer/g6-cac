@@ -54,6 +54,11 @@ cac-configmgr-cache/
 *.tmp
 *.bak
 
+# Temporary directories
+tmp/
+temp/
+/tmp/
+
 # Local instance configs (should not be committed)
 instances/*/local/
 instances/*/.env
