@@ -2126,6 +2126,9 @@ templates/
 ```
 
 ### Level 1: LogPoint Templates
+
+**Multiple templates possible** (golden-base, golden-pci-dss, golden-iso27001, etc.)
+
 Each template variant is a folder with all configuration files.
 
 ```yaml
@@ -2138,7 +2141,10 @@ description: "Standard MSSP baseline template"
 ```
 
 ### Level 2: MSSP Base
-Same structure, extends a LogPoint template.
+
+**Multiple MSSP organizations possible** (acme-corp, other-mssp, etc.)
+
+Each MSSP can have multiple base templates.
 
 ```yaml
 # mssp/acme-corp/base/metadata.yaml
@@ -2146,6 +2152,14 @@ name: acme-base
 version: "1.0.0"
 provider: acme-mssp
 extends: logpoint/golden-pci-dss  # ← Choose parent here
+```
+
+```yaml
+# mssp/competitor-mssp/base/metadata.yaml
+name: competitor-base
+version: "1.0.0"
+provider: competitor-mssp
+extends: logpoint/golden-iso27001  # Different parent
 ```
 
 ```yaml
@@ -2160,6 +2174,9 @@ spec:
 ```
 
 ### Level 3: Profiles
+
+**Multiple profiles possible per MSSP** (simple, enterprise, compliance, banking, etc.)
+
 Single YAML file per profile, no subdirectories.
 
 ```yaml
@@ -2176,7 +2193,24 @@ spec:
           retention: 365  # Override for enterprise
 ```
 
+```yaml
+# mssp/acme-corp/profiles/banking.yaml
+name: banking
+extends: ../base
+
+spec:
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 1095  # Banking compliance
+```
+
 ### Level 4: Instances
+
+**Multiple instances per client** (prod, staging, dr, test, etc.)
+
 Single YAML file per instance/environment.
 
 ```yaml
@@ -2194,6 +2228,24 @@ spec:
       hiddenrepopath:
         - _id: primary
           retention: 2555  # Final override
+```
+
+```yaml
+# instances/client-dupont/staging.yaml
+name: dupont-staging
+extends: mssp/acme-corp/profiles/enterprise
+
+spec:
+  vars:
+    clientCode: DUPONT
+    environment: staging
+    
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 90  # Shorter for staging
 ```
 
 ### Resolution Rules
