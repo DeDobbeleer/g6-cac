@@ -1718,7 +1718,9 @@ spec:
           name: "Windows"
         - _id: pkg-winsec
           name: "WinSecurity"
-      compiled_normalizer: "WindowsCompiled"
+      compiled_normalizer:
+        - _id: cnf-windows
+          name: "WindowsCompiled"
       
     - policy_name: np-linux
       _id: np-linux
@@ -1727,7 +1729,7 @@ spec:
           name: "Syslog"
         - _id: pkg-auth
           name: "LinuxAuth"
-      compiled_normalizer: ""
+      compiled_normalizer: []
       
     - policy_name: np-firewall-generic
       _id: np-firewall-generic
@@ -1750,7 +1752,9 @@ spec:
           name: "WinSecurity"
         - _id: pkg-winfw
           name: "WinFirewall"
-      compiled_normalizer: "WindowsCompiled"
+      compiled_normalizer:
+        - _id: cnf-windows
+          name: "WindowsCompiled"
       
     # Fortinet: Specific packages
     - policy_name: np-fortinet
