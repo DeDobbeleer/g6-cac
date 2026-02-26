@@ -1,68 +1,52 @@
-# Logpoint CaC - PoC Pipeline de données
+# CaC-ConfigMgr
 
-Outil CLI pour gérer les configurations de pipeline de données Logpoint via YAML et l'API Director.
+**Configuration as Code Manager for LogPoint**
 
-## Scope du PoC
+Standardize, deploy and maintain LogPoint configuration at scale — without errors, without thousands of clicks, for 1 or 100 SIEMs.
 
-**Ressources gérées** :
-- ✅ **Repos** - Configuration du stockage
-- ✅ **Routing Policies** - Où router les logs
-- ✅ **Normalization Policies** - Parser et normaliser
-- ✅ **Processing Policies** - Orchestrer le pipeline complet
+## Vision
 
-## Quick Start
+- **Time**: 2 days of clicks → 5 minutes
+- **Quality**: Zero configuration errors (pre-validation)
+- **Scalability**: Manage N SIEMs as one (pseudo-cluster)
+- **Traceability**: Complete change history (who, what, when)
+
+## Specifications
+
+| Document | Purpose |
+|----------|---------|
+| [00-VISION](specs/00-VISION.md) | Product vision and target audiences |
+| [01-ARCHITECTURE-LOGPOINT](specs/01-ARCHITECTURE-LOGPOINT.md) | LogPoint node types and config mapping |
+| [10-INVENTORY-FLEET](specs/10-INVENTORY-FLEET.md) | Tag-based fleet inventory system |
+| [20-TEMPLATE-HIERARCHY](specs/20-TEMPLATE-HIERARCHY.md) | 4-level hierarchical template system |
+| [30-PROCESSING-POLICIES](specs/30-PROCESSING-POLICIES.md) | Processing policy specification |
+| [40-CLI-WORKFLOW](specs/40-CLI-WORKFLOW.md) | CLI commands and workflow |
+| [99-ROADMAP](specs/99-ROADMAP.md) | Decisions and next steps |
+
+## Architecture Decisions
+
+See [ADRS.md](ADRS.md) for all architecture decision records.
+
+## Status
+
+🚧 **Design Phase Complete** - Specifications validated, ready for implementation.
+
+## Quick Start (Future)
 
 ```bash
-# Installation
-pip install -e .
+# Install
+pip install cac-configmgr
 
-# Valider des configs
-python -m lpcac.main validate examples/simple/
+# Validate configurations
+cac-configmgr validate ./configs/
 
-# Voir les changements (nécessite accès Director)
-export DIRECTOR_URL="https://director.example.com"
-export DIRECTOR_TOKEN="..."
+# Preview changes
+cac-configmgr plan --fleet fleet.yaml --topology topology.yaml
 
-python -m lpcac.main plan examples/simple/ \
-    --pool="uuid-du-pool" \
-    --logpoint="id-logpoint"
+# Apply changes
+cac-configmgr apply --fleet fleet.yaml --topology topology.yaml
 ```
 
-## Structure
+## License
 
-```
-lpcac/
-├── models/         # Pydantic models (validation)
-├── connectors/     # API Director
-└── main.py        # CLI
-
-examples/
-└── simple/        # Configs d'exemple
-    ├── 01-repos.yaml
-    ├── 02-routing.yaml
-    ├── 03-normalization.yaml
-    └── 04-processing.yaml
-```
-
-## Documentation
-
-| Fichier | Contenu |
-|---------|---------|
-| [README_POC.md](./README_POC.md) | Guide démarrage rapide |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Architecture technique |
-| [ADRS.md](./ADRS.md) | Décisions d'architecture |
-| [CONSTRAINTS.md](./CONSTRAINTS.md) | Contraintes API |
-
-## Roadmap PoC
-
-- [x] Modèles Pydantic pour les 4 ressources
-- [x] Connecteur Director basique
-- [x] Commande `validate`
-- [x] Commande `plan` (structure)
-- [ ] Polling des opérations async
-- [ ] Commande `apply` complète
-- [ ] Commande `sync` (export YAML)
-
----
-
-*PoC interne Logpoint - Pipeline de données*
+TBD

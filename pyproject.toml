@@ -1,7 +1,7 @@
 [project]
-name = "lpcac"
+name = "cac-configmgr"
 version = "0.1.0"
-description = "Logpoint Configuration as Code - PoC Pipeline de données"
+description = "Configuration as Code Manager for LogPoint"
 requires-python = ">=3.10"
 dependencies = [
     "typer>=0.9.0",
@@ -12,7 +12,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "ruff"]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy"]
+
+[project.scripts]
+cac-configmgr = "cac_configmgr.cli:main"
 
 [tool.ruff]
 line-length = 100
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
