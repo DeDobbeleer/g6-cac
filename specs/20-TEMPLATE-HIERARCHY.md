@@ -2259,3 +2259,59 @@ All files at each level are resolved independently:
 - `repos.yaml` from all levels merged
 - `routing-policies.yaml` from all levels merged
 - etc.
+
+### Practical Example: MSSP Using LogPoint NP As-Is
+
+**Scenario**: You are MSSP "Acme Corp" and LogPoint's Normalization Policies are perfect for your needs. You don't want to modify them.
+
+**What you do**: Simply don't create `normalization-policies.yaml` in your MSSP folder!
+
+```
+templates/
+├── logpoint/
+│   └── golden-base/
+│       ├── metadata.yaml
+│       ├── repos.yaml
+│       ├── routing-policies.yaml
+│       ├── normalization-policies.yaml   # ← LogPoint provides this
+│       └── enrichment-policies.yaml
+│
+└── mssp/
+    └── acme-corp/
+        └── base/
+            ├── metadata.yaml
+            ├── repos.yaml                   # ← You override repos
+            ├── routing-policies.yaml        # ← You override routing
+            └── enrichment-policies.yaml     # ← You override enrichment
+            # NO normalization-policies.yaml  # ← You inherit LogPoint's NP entirely
+```
+
+**Resolution result**:
+- **Repos**: from `mssp/acme-corp/base/repos.yaml` (your overrides)
+- **Routing Policies**: from `mssp/acme-corp/base/routing-policies.yaml` (your overrides)
+- **Normalization Policies**: from `logpoint/golden-base/normalization-policies.yaml` (inherited as-is)
+- **Enrichment Policies**: from `mssp/acme-corp/base/enrichment-policies.yaml` (your overrides)
+
+**If you later need to modify just one NP**:
+
+Create `mssp/acme-corp/base/normalization-policies.yaml` with only what you want to change:
+
+```yaml
+# mssp/acme-corp/base/normalization-policies.yaml
+spec:
+  normalizationPolicies:
+    - policy_name: np-windows
+      _id: np-windows
+      normalization_packages:
+        - _id: pkg-windows
+          name: "Windows"
+        - _id: pkg-winsec
+          name: "WinSecurity"
+        - _id: pkg-winfw                    # ← Only add this new package
+          name: "WinFirewall"
+      compiled_normalizer:
+        - _id: cnf-windows
+          name: "WindowsCompiled"
+```
+
+**Result**: All other NPs (np-linux, np-fortinet, etc.) are still inherited from LogPoint. Only np-windows is merged with your addition.
