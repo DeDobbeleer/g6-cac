@@ -124,8 +124,9 @@ repos:
 
 ### 4.1 Template Definition
 
+**File**: `templates/logpoint/golden-base/repos.yaml`
+
 ```yaml
-# templates/logpoint/golden-base.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -134,28 +135,19 @@ metadata:
   provider: logpoint
   
 spec:
-  # Resources are grouped by type
   repos:
     - name: default
       hiddenrepopath:
         - _id: default-tier
           path: /opt/immune/storage
           retention: 90
-          
-  routingPolicies:
-    - policy_name: rp-default
-      catch_all: default
-      routing_criteria: []
-      
-  normalizationPolicies:
-    - policy_name: np-auto
-      normalization_packages: ["Auto"]
 ```
 
 ### 4.2 Template Extension with Merge
 
+**File**: `templates/mssp/acme-corp/base/repos.yaml`
+
 ```yaml
-# templates/mssp/acme-corp/base.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -217,8 +209,9 @@ repos:
 
 ### 4.3 Multi-Level Inheritance with List Merging
 
+**File**: `templates/mssp/acme-corp/profiles/enterprise/repos.yaml`
+
 ```yaml
-# templates/mssp/acme-corp/profiles/enterprise.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -286,8 +279,11 @@ repo-secu:
 
 ### 4.4 Instance Instantiation
 
+Instances use **single-file structure** (not split by config type) as they contain minimal overrides.
+
+**File**: `instances/client-dupont/prod/instance.yaml`
+
 ```yaml
-# instances/client-dupont/prod/topology.yaml
 apiVersion: cac-configmgr.io/v1
 kind: TopologyInstance
 metadata:
@@ -706,43 +702,85 @@ spec:
 
 ## 7. File Organization
 
-### 7.1 Directory Structure
+### 7.1 File Structure Rules
+
+| Template Level | Structure | Rule |
+|----------------|-----------|------|
+| **Level 1-3** (LogPoint, MSSP, Profiles) | **Multi-file** | One file per config type: `repos.yaml`, `routing-policies.yaml`, etc. |
+| **Level 4** (Instances) | **Single-file** | One `instance.yaml` containing only overrides |
+
+### 7.2 Directory Structure
 
 ```
 cac-configmgr-templates/
 ├── logpoint/                          # Level 1: Golden Templates
-│   ├── golden-base.yaml
-│   ├── golden-pci-dss.yaml
-│   ├── golden-iso27001.yaml
-│   └── versions/
-│       ├── golden-base-v1.0.0.yaml
-│       ├── golden-base-v1.1.0.yaml
-│       └── golden-base-v2.0.0.yaml
+│   ├── golden-base/                   # ← Directory (multi-file)
+│   │   ├── repos.yaml
+│   │   ├── routing-policies.yaml
+│   │   └── normalization-policies.yaml
+│   ├── golden-pci-dss/                # ← PCI addon template
+│   │   └── routing-policies.yaml      # Only PCI-specific overrides
+│   └── golden-iso27001/
+│       └── ...
 │
 ├── mssp/                              # Level 2: MSSP Templates
 │   └── acme-corp/
-│       ├── base.yaml                  # Extends logpoint/golden
-│       ├── acme-pci.yaml              # Extends base + PCI overlay
-│       └── profiles/
-│           ├── simple.yaml            # Extends acme/base
-│           ├── medium.yaml
-│           └── enterprise.yaml
+│       ├── base/                      # ← Directory (multi-file)
+│       │   ├── repos.yaml
+│       │   └── routing-policies.yaml
+│       └── profiles/                  # Level 3: Profile Templates
+│           ├── enterprise/            # ← Directory (multi-file)
+│           │   ├── routing-policies.yaml
+│           │   └── enrichment-policies.yaml
+│           └── simple/
+│               └── ...
 │
 └── instances/                         # Level 4: Concrete Instances
     └── acme-corp/
         ├── client-dupont/
         │   ├── prod/
-        │   │   ├── topology.yaml      # Extends enterprise profile
-        │   │   ├── fleet.yaml
-        │   │   └── vars.yaml          # Instance variables
+        │   │   ├── instance.yaml      # ← Single file (not directory)
+        │   │   └── fleet.yaml
         │   └── staging/
-        │       ├── topology.yaml
+        │       ├── instance.yaml
         │       └── fleet.yaml
         └── client-martin/
             └── ...
 ```
 
-### 7.2 Versioning Strategy
+### 7.3 Multi-File Template Example
+
+A template directory contains one file per configuration type:
+
+**`templates/mssp/acme-corp/base/repos.yaml`**:
+```yaml
+apiVersion: cac-configmgr.io/v1
+kind: ConfigTemplate
+metadata:
+  name: acme-base
+  extends: logpoint/golden-base
+spec:
+  repos:
+    - name: repo-secu
+      hiddenrepopath: [...]
+```
+
+**`templates/mssp/acme-corp/base/routing-policies.yaml`**:
+```yaml
+apiVersion: cac-configmgr.io/v1
+kind: ConfigTemplate
+metadata:
+  name: acme-base        # Same name = same template
+  extends: logpoint/golden-base
+spec:
+  routingPolicies:
+    - policy_name: rp-acme-default
+      routing_criteria: [...]
+```
+
+**Resolution**: All files with the same `metadata.name` are merged into a single template before inheritance processing.
+
+### 7.4 Versioning Strategy
 
 Templates are immutable and versioned:
 
@@ -770,8 +808,8 @@ extends: logpoint/golden-base          # Latest (risky)
 ### 8.2 Validation
 
 ```bash
-# Validate template hierarchy
-cac-configmgr template validate --template templates/mssp/acme/base.yaml
+# Validate template hierarchy (directory-based templates)
+cac-configmgr template validate --template templates/mssp/acme/base/
 
 # Check for conflicts
 cac-configmgr template check-conflicts \
@@ -780,7 +818,7 @@ cac-configmgr template check-conflicts \
 
 # Preview resolved configuration
 cac-configmgr template resolve \
-  --instance instances/client-dupont/prod/topology.yaml \
+  --instance instances/client-dupont/prod/instance.yaml \
   --output resolved.yaml
 ```
 
@@ -855,8 +893,9 @@ This example demonstrates the full inheritance chain using the **LogPoint Golden
 **LogPoint provides the MSSP baseline with 6 standard repos + default.
 IMPORTANT: Only the OOB mount point `/opt/immune/storage` is used at this level.**
 
+**File**: `templates/logpoint/golden-mssp/repos.yaml`
+
 ```yaml
-# templates/logpoint/golden-mssp.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -918,6 +957,8 @@ Multi-tier rotation with different mount points (`storage-warm`, `storage-cold`,
 
 ### Step 2: MSSP Base Template
 
+**File**: `templates/mssp/acme-corp/base/repos.yaml`
+
 **ACME Corp (MSSP) inherits from LogPoint and:**
 - **Introduces new mount points**: `/opt/immune/storage-warm`, `/opt/immune/storage-cold`
 - **Overrides** all retentions to their standard (more conservative)
@@ -925,7 +966,7 @@ Multi-tier rotation with different mount points (`storage-warm`, `storage-cold`,
 - **Keeps** the same 6 repos + default structure
 
 ```yaml
-# templates/mssp/acme-corp/base.yaml
+# templates/mssp/acme-corp/base/repos.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -1001,6 +1042,8 @@ spec:
 
 ### Step 3: Profile by Deployment Type
 
+**File**: `templates/mssp/acme-corp/profiles/enterprise/repos.yaml`
+
 **ACME Corp creates an ENTERPRISE profile** for large clients with strict compliance:
 - **Introduces NFS mount point**: `/opt/immune/storage-nfs` (new at this level)
 - **Adds NFS archive tier** for regulatory repos
@@ -1008,7 +1051,7 @@ spec:
 - **Extends warm/cold** for audit requirements
 
 ```yaml
-# templates/mssp/acme-corp/profiles/enterprise.yaml
+# templates/mssp/acme-corp/profiles/enterprise/repos.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -1066,12 +1109,14 @@ spec:
 
 ### Step 4: Client Instance (Banque Dupont)
 
+**File**: `instances/banque-dupont/prod/instance.yaml`
+
 **Specific client overrides** for banking regulations:
 - **Longer NFS retention** (10 years for banking law)
 - **Shorter warm tiers** (faster compliance review)
 
 ```yaml
-# instances/banque-dupont/prod/topology.yaml
+# instances/banque-dupont/prod/instance.yaml
 apiVersion: cac-configmgr.io/v1
 kind: TopologyInstance
 metadata:
@@ -1231,7 +1276,7 @@ LogPoint provides routing policies for **major source types**, each with their s
 **Optimization**: If a criterion routes to the same repo as `catch_all`, it is redundant and should be removed.
 
 ```yaml
-# templates/logpoint/golden-mssp/routing.yaml
+# templates/logpoint/golden-mssp/routing-policies.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
@@ -1396,12 +1441,12 @@ spec:
 MSSP inherits source-specific policies and modifies them. Each policy is independent - there is no inheritance between Windows and Linux or between Checkpoint and Fortinet.
 
 ```yaml
-# templates/mssp/acme-corp/routing.yaml
+# templates/mssp/acme-corp/base/routing-policies.yaml
 apiVersion: cac-configmgr.io/v1
 kind: ConfigTemplate
 metadata:
-  name: acme-routing
-  extends: logpoint/golden-mssp-routing
+  name: acme-base
+  extends: logpoint/golden-mssp
   
 spec:
   routingPolicies:
