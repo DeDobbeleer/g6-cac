@@ -1,4 +1,4 @@
-# GuardSix CaC - Coding Standards
+# CaC-ConfigMgr CaC - Coding Standards
 
 **Status**: 🚧 Draft - To be completed as project progresses  
 **Language**: Python 3.10+  
@@ -10,7 +10,7 @@
 
 ### Directory Structure
 ```
-guardsix/
+cac-configmgr/
 ├── core/                   # Core business logic
 │   ├── models/            # Pydantic models
 │   ├── engine/            # Plan/Apply/Drift logic
@@ -121,11 +121,11 @@ class DataNode(BaseModel):
 
 ### Exception Hierarchy
 ```python
-class GuardSixError(Exception):
-    """Base exception for all GuardSix errors."""
+class CaC-ConfigMgrError(Exception):
+    """Base exception for all CaC-ConfigMgr errors."""
     pass
 
-class ValidationError(GuardSixError):
+class ValidationError(CaC-ConfigMgrError):
     """Configuration validation failed."""
     pass
 ```
@@ -170,6 +170,6 @@ logger = logging.getLogger(__name__)
 - **Rich** for output formatting
 
 ### Principles
-- Verb-noun structure: `guardsix validate fleet.yaml`
+- Verb-noun structure: `cac-configmgr validate fleet.yaml`
 - Consistent flags: `--fleet`, `--topology`, `--dry-run`
 - Clear error messages with suggestions

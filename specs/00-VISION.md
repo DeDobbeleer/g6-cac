@@ -1,7 +1,7 @@
 # Product Vision
 
 ## Name
-**Status**: ✅ **VALIDATED** - **GuardSix CaC** (guardsix cac)
+**Status**: ✅ **VALIDATED** - **CaC-ConfigMgr** (cac-configmgr cac)
 
 ## Elevator Pitch
 Standardize, deploy and maintain LogPoint configuration at scale — without errors, without thousands of clicks, for 1 or 100 SIEMs.

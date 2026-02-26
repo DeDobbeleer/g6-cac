@@ -77,7 +77,7 @@ Client C
 
 ---
 
-## Key GuardSix CaC Concepts
+## Key CaC-ConfigMgr CaC Concepts
 
 ### Pseudo-Cluster
 Group of **same-type nodes** receiving the **same configuration**.

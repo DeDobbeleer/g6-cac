@@ -22,7 +22,7 @@ Everything is tagged. Tags define:
 
 ```yaml
 # fleet.yaml
-apiVersion: guardsix.io/v1
+apiVersion: cac-configmgr.io/v1
 kind: Fleet
 
 metadata:
@@ -248,7 +248,7 @@ spec:
 
 ## Tag Conventions
 
-### Reserved Tags (GuardSix interprets these)
+### Reserved Tags (CaC-ConfigMgr interprets these)
 | Tag | Usage | Example Values |
 |-----|-------|----------------|
 | `cluster` | Group nodes into clusters | `production`, `archive` |
@@ -271,7 +271,7 @@ tags:
 
 1. **Flexibility**: Add any metadata without schema changes
 2. **Multi-dimensional**: A node can be in multiple logical groups
-3. **Selector-friendly**: `guardsix apply --select env=prod,tier=gold`
+3. **Selector-friendly**: `cac-configmgr apply --select env=prod,tier=gold`
 4. **Future-proof**: New relationship types via new tag conventions
 5. **Familiar**: Same pattern as Kubernetes labels, AWS tags, etc.
 
@@ -305,7 +305,7 @@ aios:
 ### Q5 - Tag Validation: PERMISSIVE (recommended)
 Any tags allowed. Reserved tags have special meaning.
 
-**Reserved tags** (interpreted by GuardSix):
+**Reserved tags** (interpreted by CaC-ConfigMgr):
 - `cluster`: Groups nodes into clusters
 - `env`: Environment separation (prod, staging, dev)
 - `sh-for`: SH visibility scope

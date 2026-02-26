@@ -2,7 +2,7 @@
 
 **Last Updated**: 2026-02-26  
 **Language**: All deliverables in **English** (specifications, code, documentation)  
-**In Progress**: Defining Topology specification  
+**Status**: Hierarchical Template System - ✅ COMPLETE with Template IDs  
 **Next Step**: Validate Q3 (AIO clustering) and tag validation rules
 
 ---
@@ -24,19 +24,21 @@
 ### 1. Vision & Name
 - [x] Target audience defined (MSSP → Enterprise)
 - [x] Promised values identified
-- [x] **PRODUCT NAME VALIDATED**: GuardSix CaC
+- [x] **PRODUCT NAME VALIDATED**: CaC-ConfigMgr CaC
 - [x] **LANGUAGE DECISION**: All deliverables in English
 
 ### 2. Technical Concepts
 - [x] **Pseudo-Cluster**: Defined (DataNodeCluster, SearchHeadCluster)
-- [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach, Q3=A, Q5=Permissive)
+- [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach)
+- [x] **Template Hierarchy**: ✅ COMPLETE with Template ID mechanism
+- [x] **Routing Policies**: ✅ COMPLETE (Appendix D with vendor-specific examples)
 - [ ] **Configuration (Topology)**: To be defined
 - [ ] **Workflow**: Commands and state transitions to be defined
 
 ### 3. DirSync Reference
 - [x] Director API documented (via DirSync)
 - [x] Object dependencies known
-- [ ] GuardSix CaC ↔ DirSync mapping (to be done)
+- [ ] CaC-ConfigMgr CaC ↔ DirSync mapping (to be done)
 
 ---
 
@@ -66,7 +68,7 @@ A Search Head is connected to Data Nodes that are NOT in a cluster (e.g., DN sit
 
 How do we model this?
 - **A**: `connectedDataNodes: [dn-site-a, dn-site-b]` (explicit list)
-- **B**: No need to model in GuardSix, handled on LogPoint side
+- **B**: No need to model in CaC-ConfigMgr, handled on LogPoint side
 - **C**: Force creation of a logical cluster even for single DN
 
 ### Q3: AIO clustering?
