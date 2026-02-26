@@ -2071,3 +2071,139 @@ routingPolicies:
 4. `crit-info` (deleted)
 
 This ordering system provides maximum flexibility while maintaining predictable behavior.
+## File Structure Specification
+
+### Principle
+Each hierarchical level has the **same folder structure** with **one file per configuration type**.
+
+### Directory Structure
+
+```
+templates/
+├── logpoint/                          # Level 1: LogPoint (multiple variants)
+│   ├── golden-base/                   # ← One folder per template variant
+│   │   ├── metadata.yaml              # Template metadata (name, version, extends)
+│   │   ├── repos.yaml                 # All repositories
+│   │   ├── routing-policies.yaml      # All routing policies
+│   │   ├── normalization-policies.yaml # All normalization policies
+│   │   ├── enrichment-policies.yaml   # All enrichment policies
+│   │   └── processing-policies.yaml   # All processing policies
+│   │
+│   ├── golden-pci-dss/                # ← PCI compliance variant
+│   │   ├── metadata.yaml
+│   │   ├── repos.yaml
+│   │   ├── routing-policies.yaml
+│   │   ├── normalization-policies.yaml
+│   │   ├── enrichment-policies.yaml
+│   │   └── processing-policies.yaml
+│   │
+│   └── golden-iso27001/               # ← ISO 27001 variant
+│       ├── metadata.yaml
+│       ├── repos.yaml
+│       ├── routing-policies.yaml
+│       ├── normalization-policies.yaml
+│       ├── enrichment-policies.yaml
+│       └── processing-policies.yaml
+│
+├── mssp/                              # Level 2: MSSP
+│   └── acme-corp/
+│       ├── base/                      # ← Same structure as LogPoint
+│       │   ├── metadata.yaml          # extends: logpoint/golden-pci-dss
+│       │   ├── repos.yaml             # Overrides/additions for repos
+│       │   ├── routing-policies.yaml  # Overrides/additions for RP
+│       │   ├── normalization-policies.yaml
+│       │   ├── enrichment-policies.yaml
+│       │   └── processing-policies.yaml
+│       │
+│       └── profiles/                  # Level 3: Profiles
+│           ├── simple.yaml            # ← Single file per profile
+│           └── enterprise.yaml        # (no subdirectories)
+│
+└── instances/                         # Level 4: Instances (flat)
+    └── client-dupont/
+        ├── prod.yaml                  # Single file per instance
+        └── staging.yaml
+```
+
+### Level 1: LogPoint Templates
+Each template variant is a folder with all configuration files.
+
+```yaml
+# logpoint/golden-base/metadata.yaml
+name: golden-base
+version: "1.0.0"
+provider: logpoint
+description: "Standard MSSP baseline template"
+# No 'extends' - this is the root
+```
+
+### Level 2: MSSP Base
+Same structure, extends a LogPoint template.
+
+```yaml
+# mssp/acme-corp/base/metadata.yaml
+name: acme-base
+version: "1.0.0"
+provider: acme-mssp
+extends: logpoint/golden-pci-dss  # ← Choose parent here
+```
+
+```yaml
+# mssp/acme-corp/base/repos.yaml
+spec:
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 180  # Override from LogPoint
+```
+
+### Level 3: Profiles
+Single YAML file per profile, no subdirectories.
+
+```yaml
+# mssp/acme-corp/profiles/enterprise.yaml
+name: enterprise
+extends: ../base  # Extends MSSP base
+
+spec:
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 365  # Override for enterprise
+```
+
+### Level 4: Instances
+Single YAML file per instance/environment.
+
+```yaml
+# instances/client-dupont/prod.yaml
+name: dupont-prod
+extends: mssp/acme-corp/profiles/enterprise
+
+spec:
+  vars:
+    clientCode: DUPONT
+    
+  repos:
+    - name: repo-secu
+      _id: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 2555  # Final override
+```
+
+### Resolution Rules
+
+1. **Level 1 (LogPoint)**: Complete configuration set
+2. **Level 2 (MSSP Base)**: Inherits from LogPoint, can override/add
+3. **Level 3 (Profiles)**: Inherits from MSSP Base, can override/add  
+4. **Level 4 (Instances)**: Inherits from Profile, can override/add
+
+All files at each level are resolved independently:
+- `repos.yaml` from all levels merged
+- `routing-policies.yaml` from all levels merged
+- etc.
