@@ -2,8 +2,9 @@
 
 **Last Updated**: 2026-02-26  
 **Language**: All deliverables in **English** (specifications, code, documentation)  
-**Status**: Hierarchical Template System - ✅ COMPLETE with Template IDs  
-**Next Step**: Validate Q3 (AIO clustering) and tag validation rules
+**Status**: Routing Policies - ✅ COMPLETE  
+**Last Commit**: f1781b1 - tmp/ directory setup  
+**Next Step**: Define Processing Policies or Workflow CLI
 
 ---
 
@@ -13,6 +14,7 @@
 - ✅ `00-VISION.md` - Product vision (EN)
 - ✅ `01-ARCHITECTURE-LOGPOINT.md` - LogPoint architecture reference (EN)
 - ✅ `10-INVENTORY-FLEET.md` - Fleet inventory specification (EN)
+- ✅ `20-TEMPLATE-HIERARCHY.md` - Template system with Routing Policies (EN)
 
 ### Standards (docs/)
 - ✅ `CODING-STANDARDS.md` - Python coding standards (EN)
@@ -28,12 +30,13 @@
 - [x] **LANGUAGE DECISION**: All deliverables in English
 
 ### 2. Technical Concepts
-- [x] **Pseudo-Cluster**: Defined (DataNodeCluster, SearchHeadCluster)
-- [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach)
+- [x] **Pseudo-Cluster**: Defined (DataNodeCluster, SearchHeadCluster) - Q3=A
+- [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach) - Q5=Permissive
 - [x] **Template Hierarchy**: ✅ COMPLETE with Template ID mechanism
-- [x] **Routing Policies**: ✅ COMPLETE (Appendix D with vendor-specific examples)
-- [ ] **Configuration (Topology)**: To be defined
-- [ ] **Workflow**: Commands and state transitions to be defined
+- [x] **Routing Policies**: ✅ COMPLETE (vendor-specific, with drop/filter support)
+- [ ] **Processing Policies**: To be defined (normalization → enrichment → processing)
+- [ ] **Alert Rules**: To be defined
+- [ ] **Workflow CLI**: Commands and state transitions to be defined
 
 ### 3. DirSync Reference
 - [x] Director API documented (via DirSync)
@@ -55,39 +58,35 @@
 
 ## Open Questions (Answer these to proceed)
 
-### Q1: Cluster-scoped variables
-The "production" cluster has 365 days retention, the "archive" cluster has 2555 days.
+### ✅ Q1: Cluster-scoped variables - RESOLVED
+**Answer**: **B** - Variables in configuration/topology, not in Fleet
+- Fleet defines structure (nodes, clusters, tags)
+- Topology defines config values (retention, paths, etc.)
 
-Where do you define this?
-- **A**: In the `fleet.yaml` (with the cluster definition)
-- **B**: In the configuration/topology (when applying)
-- **C**: Both (default variables in fleet, override in config)
+### ✅ Q2: SH connected to individual DNs - RESOLVED
+**Answer**: **A** - Use tags for relationships
+- Tags define cluster membership: `cluster: production`
+- Tags define SH visibility: `sh-for: production`
+- Flexible, no hardcoded references
 
-### Q2: SH connected to individual DNs
-A Search Head is connected to Data Nodes that are NOT in a cluster (e.g., DN site A, DN site B isolated).
+### ✅ Q3: AIO clustering? - RESOLVED
+**Answer**: **A** - Yes, AIOs can be clustered via tags
+- Use case: DRP (Disaster Recovery Plan)
+- Tag `cluster: drp-ha` on multiple AIOs
 
-How do we model this?
-- **A**: `connectedDataNodes: [dn-site-a, dn-site-b]` (explicit list)
-- **B**: No need to model in CaC-ConfigMgr, handled on LogPoint side
-- **C**: Force creation of a logical cluster even for single DN
-
-### Q3: AIO clustering?
-Can a client have 2 identical AIOs in HA?
-- **A**: Yes (so we need `AIOCluster`)
-- **B**: No (AIO = always unique, no native HA)
-
-### Q4: Prod/Staging/Tests
-A client has multiple environments. This is:
-- **A**: A single `fleet.yaml` with everything inside (prod + staging)
-- **B**: One `fleet.yaml` per environment (`fleet-prod.yaml`, `fleet-staging.yaml`)
-- **C**: Single file with `environments: [prod, staging]` sections
+### ✅ Q4: Prod/Staging/Tests - RESOLVED
+**Answer**: **A** - Single `fleet.yaml` with `env: prod`, `env: staging` tags
+- Environment filtering via tags
+- No separate files needed
 
 ---
 
 ## Next Milestones
 
-1. **Validate Fleet spec** (answer Q1-Q4)
-2. **Define Configuration (Topology)** spec
-3. **Define CLI Workflow** (commands: validate, plan, apply, drift)
-4. **Create Pydantic models** from validated specs
-5. **Implement Provider interface** for Director API
+1. ~~**Validate Fleet spec**~~ ✅ COMPLETE
+2. ~~**Define Configuration (Topology)**~~ ✅ COMPLETE (Template Hierarchy)
+3. **Define Processing Policies** (normalization → enrichment → processing pipeline)
+4. **Define Alert Rules** (detection rules)
+5. **Define CLI Workflow** (commands: validate, plan, apply, drift)
+6. **Create Pydantic models** from validated specs
+7. **Implement Provider interface** for Director API

@@ -31,14 +31,15 @@ Standardize, deploy and maintain LogPoint configuration at scale — without err
 
 ## Key Concepts Identified
 
-- [ ] **Pseudo-Cluster**: Config replication across N identical SIEMs
-- [ ] **Inventory (Fleet)**: Client fleet representation
-- [ ] **Configuration (Topology)**: Desired state definition
-- [ ] **Workflow**: Plan → Validate → Apply → Drift
+- [x] **Pseudo-Cluster**: Config replication across N identical SIEMs
+- [x] **Inventory (Fleet)**: Client fleet representation (tag-based)
+- [x] **Configuration (Topology)**: Desired state definition (hierarchical templates with _id)
+- [ ] **Workflow**: Plan → Validate → Apply → Drift (to be defined)
 
 ## Decisions to Make
 
-- [x] Final product name
-- [ ] Validate pseudo-cluster concept
-- [ ] Validate inventory structure
-- [ ] Validate configuration format
+- [x] Final product name: CaC-ConfigMgr
+- [x] Validate pseudo-cluster concept: ✅ AIOs can be clustered via tags
+- [x] Validate inventory structure: ✅ Tag-based approach with _id
+- [x] Validate configuration format: ✅ Hierarchical templates
+- [ ] Validate workflow CLI commands
