@@ -2,9 +2,9 @@
 
 **Last Updated**: 2026-02-26  
 **Language**: All deliverables in **English** (specifications, code, documentation)  
-**Status**: Routing Policies - ✅ COMPLETE  
-**Last Commit**: f1781b1 - tmp/ directory setup  
-**Next Step**: Define Processing Policies or Workflow CLI
+**Status**: Core Specifications - ✅ COMPLETE  
+**Last Commit**: c615382 - All specs translated to English  
+**Next Step**: Review and validate all specifications
 
 ---
 
@@ -15,6 +15,8 @@
 - ✅ `01-ARCHITECTURE-LOGPOINT.md` - LogPoint architecture reference (EN)
 - ✅ `10-INVENTORY-FLEET.md` - Fleet inventory specification (EN)
 - ✅ `20-TEMPLATE-HIERARCHY.md` - Template system with Routing Policies (EN)
+- ✅ `30-PROCESSING-POLICIES.md` - Processing Policies specification (EN)
+- ✅ `40-CLI-WORKFLOW.md` - CLI commands and workflow (EN)
 
 ### Standards (docs/)
 - ✅ `CODING-STANDARDS.md` - Python coding standards (EN)
@@ -34,8 +36,8 @@
 - [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach) - Q5=Permissive
 - [x] **Template Hierarchy**: ✅ COMPLETE with Template ID mechanism
 - [x] **Routing Policies**: ✅ COMPLETE (vendor-specific, with drop/filter support)
-- [ ] **Processing Policies**: To be defined (normalization → enrichment → processing)
-- [ ] **Workflow CLI**: Commands and state transitions to be defined
+- [x] **Processing Policies**: ✅ Draft created (glue resource: RP+NP+EP)
+- [x] **Workflow CLI**: ✅ Draft created (validate/plan/apply/drift/backup)
 - [ ] **Alert Rules**: To be defined (post-MVP)
 
 ### 3. DirSync Reference

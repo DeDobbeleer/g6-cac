@@ -34,7 +34,7 @@ Standardize, deploy and maintain LogPoint configuration at scale — without err
 - [x] **Pseudo-Cluster**: Config replication across N identical SIEMs
 - [x] **Inventory (Fleet)**: Client fleet representation (tag-based)
 - [x] **Configuration (Topology)**: Desired state definition (hierarchical templates with _id)
-- [ ] **Workflow**: Plan → Validate → Apply → Drift (to be defined)
+- [x] **Workflow**: ✅ Plan → Validate → Apply → Drift (defined in 40-CLI-WORKFLOW.md)
 
 ## Decisions to Make
 
