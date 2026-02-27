@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 from .repos import Repo
 from .routing import RoutingPolicy
 from .processing import ProcessingPolicy
+from .normalization import NormalizationPolicy
+from .enrichment import EnrichmentPolicy
 
 
 class TemplateMetadata(BaseModel):
@@ -91,9 +93,8 @@ class TemplateSpec(BaseModel):
     repos: list[Repo] = Field(default_factory=list, alias="repos")
     routing_policies: list[RoutingPolicy] = Field(default_factory=list, alias="routingPolicies")
     processing_policies: list[ProcessingPolicy] = Field(default_factory=list, alias="processingPolicies")
-    # Future resource types can be added here:
-    # normalization_policies: list[NormalizationPolicy] = Field(default_factory=list, alias="normalizationPolicies")
-    # enrichment_policies: list[EnrichmentPolicy] = Field(default_factory=list, alias="enrichmentPolicies")
+    normalization_policies: list[NormalizationPolicy] = Field(default_factory=list, alias="normalizationPolicies")
+    enrichment_policies: list[EnrichmentPolicy] = Field(default_factory=list, alias="enrichmentPolicies")
     
     def get_all_resources(self) -> dict[str, list]:
         """Get all resources grouped by type.
@@ -105,6 +106,8 @@ class TemplateSpec(BaseModel):
             "repos": self.repos,
             "routing_policies": self.routing_policies,
             "processing_policies": self.processing_policies,
+            "normalization_policies": self.normalization_policies,
+            "enrichment_policies": self.enrichment_policies,
         }
     
     def get_resource_by_name(self, resource_type: str, name: str) -> Any | None:

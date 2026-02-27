@@ -42,6 +42,14 @@ from .processing import (
     ProcessingPolicy,
 )
 
+from .normalization import (
+    NormalizationPolicy,
+)
+
+from .enrichment import (
+    EnrichmentPolicy,
+)
+
 __all__ = [
     # Fleet
     "Fleet",
@@ -69,4 +77,8 @@ __all__ = [
     "RoutingCriterion",
     # Processing
     "ProcessingPolicy",
+    # Normalization
+    "NormalizationPolicy",
+    # Enrichment
+    "EnrichmentPolicy",
 ]

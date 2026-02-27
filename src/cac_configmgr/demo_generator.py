@@ -17,6 +17,8 @@ from .models import (
     Repo, HiddenRepoPath,
     RoutingPolicy, RoutingCriterion,
     ProcessingPolicy,
+    NormalizationPolicy,
+    EnrichmentPolicy,
     Fleet, FleetMetadata, FleetSpec, DirectorConfig, Nodes,
     DataNode, SearchHead, AIO,
 )
@@ -99,23 +101,62 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                     ]
                 ),
             ],
+            normalization_policies=[
+                NormalizationPolicy(
+                    name="np-auto",
+                    id="np-auto",
+                    package="auto-normalization",
+                    description="Automatic log parsing"
+                ),
+                NormalizationPolicy(
+                    name="np-windows",
+                    id="np-windows",
+                    package="windows-normalization",
+                    description="Windows event log parsing"
+                ),
+                NormalizationPolicy(
+                    name="np-linux",
+                    id="np-linux",
+                    package="linux-syslog-normalization",
+                    description="Linux syslog parsing"
+                ),
+            ],
+            enrichment_policies=[
+                EnrichmentPolicy(
+                    name="ep-geoip",
+                    id="ep-geoip",
+                    sources=[{"source": "geoip-db"}],
+                    description="GeoIP enrichment"
+                ),
+                EnrichmentPolicy(
+                    name="ep-threatintel",
+                    id="ep-threatintel",
+                    sources=[{"source": "threat-intel-feed"}],
+                    description="Threat intelligence enrichment"
+                ),
+            ],
             processing_policies=[
                 ProcessingPolicy(
                     name="pp-default",
                     id="pp-default",
                     routing_policy="rp-default",
+                    normalization_policy="np-auto",
                     description="Default processing pipeline"
                 ),
                 ProcessingPolicy(
                     name="pp-windows",
                     id="pp-windows",
                     routing_policy="rp-windows",
+                    normalization_policy="np-windows",
+                    enrichment_policy="ep-geoip",
                     description="Windows log processing"
                 ),
                 ProcessingPolicy(
                     name="pp-linux",
                     id="pp-linux",
                     routing_policy="rp-linux",
+                    normalization_policy="np-linux",
+                    enrichment_policy="ep-threatintel",
                     description="Linux log processing"
                 ),
             ],
@@ -340,12 +381,30 @@ def _generate_mssp_templates(base_dir: Path) -> None:
                     ]
                 ),
             ],
+            normalization_policies=[
+                NormalizationPolicy(
+                    name="np-banking",
+                    id="np-banking",
+                    package="banking-transaction-normalization",
+                    description="Banking transaction log parsing"
+                ),
+            ],
+            enrichment_policies=[
+                EnrichmentPolicy(
+                    name="ep-mifid",
+                    id="ep-mifid",
+                    sources=[{"source": "mifid-compliance-db"}, {"source": "swift-reference"}],
+                    description="MiFID compliance enrichment"
+                ),
+            ],
             processing_policies=[
                 ProcessingPolicy(
                     name="pp-banking-audit",
                     id="pp-banking-audit",
                     routing_policy="rp-banking-audit",
-                    description="Banking audit processing"
+                    normalization_policy="np-banking",
+                    enrichment_policy="ep-mifid",
+                    description="Banking audit processing with MiFID compliance"
                 ),
             ],
         )
