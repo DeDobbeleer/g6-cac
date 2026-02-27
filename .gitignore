@@ -67,3 +67,12 @@ instances/*/.env
 *.pem
 *.key
 id_rsa*
+
+# Generated demo configs
+demo-configs/
+
+# Virtual environment
+venv/
+.venv/
+__pycache__/
+*.pyc
