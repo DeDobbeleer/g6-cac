@@ -11,7 +11,7 @@ from rich.table import Table
 from rich import box
 
 from ..utils import load_yaml, load_instance, load_fleet, load_multi_file_template, YamlError
-from ..core import ResolutionEngine, filter_internal_ids, ConsistencyValidator
+from ..core import ResolutionEngine, filter_internal_ids, ConsistencyValidator, LogPointDependencyValidator
 
 app = typer.Typer(help="Configuration as Code Manager for LogPoint")
 console = Console()
@@ -151,6 +151,40 @@ def plan(
         else:
             console.print("[green]✓ All resource references are consistent[/green]")
             console.print()
+        
+        # Validate LogPoint dependencies (DirSync/API constraints)
+        dep_validator = LogPointDependencyValidator(resolved.resources)
+        dep_errors = dep_validator.validate()
+        
+        if dep_errors:
+            # Group by severity
+            errors = [e for e in dep_errors if e.severity == "ERROR"]
+            warnings = [e for e in dep_errors if e.severity == "WARNING"]
+            
+            if errors:
+                console.print("[bold red]LogPoint Dependency Errors:[/bold red]")
+                for error in errors:
+                    console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}: {error.message}")
+                console.print()
+            
+            if warnings:
+                console.print("[bold yellow]LogPoint Dependency Warnings:[/bold yellow]")
+                for error in warnings:
+                    console.print(f"  [yellow]•[/yellow] {error.resource_type}.{error.resource_name}: {error.message}")
+                console.print()
+            
+            if errors:
+                console.print("[red]❌ Deployment would fail - dependency errors must be fixed[/red]")
+                console.print()
+        else:
+            console.print("[green]✓ All LogPoint dependencies satisfied[/green]")
+            console.print()
+        
+        # Show deployment order
+        console.print("[dim]Deployment order:[/dim]")
+        order = " → ".join(dep_validator.get_deployment_order()[:6])  # Show first 6
+        console.print(f"[dim]  {order} → ...[/dim]")
+        console.print()
         
         # Show template chain
         chain_table = Table(title="Template Chain (Root → Leaf)", box=box.ROUNDED)

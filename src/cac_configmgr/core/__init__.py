@@ -41,6 +41,13 @@ from .validator import (
     validate_resources,
 )
 
+from .logpoint_dependencies import (
+    LogPointDependencyValidator,
+    DependencyError,
+    validate_dependencies,
+    ResourceType,
+)
+
 __all__ = [
     # Resolver
     "TemplateResolver",
@@ -63,8 +70,13 @@ __all__ = [
     "ResolutionEngine",
     "ResolvedConfiguration",
     "filter_internal_ids",
-    # Validator
+    # Cross-resource Validator
     "ConsistencyValidator",
     "ValidationError",
     "validate_resources",
+    # LogPoint Dependency Validator
+    "LogPointDependencyValidator",
+    "DependencyError",
+    "validate_dependencies",
+    "ResourceType",
 ]
