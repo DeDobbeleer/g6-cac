@@ -44,10 +44,12 @@ from .processing import (
 
 from .normalization import (
     NormalizationPolicy,
+    NormalizationPackage,
 )
 
 from .enrichment import (
     EnrichmentPolicy,
+    EnrichmentSpecification,
 )
 
 __all__ = [
@@ -79,6 +81,8 @@ __all__ = [
     "ProcessingPolicy",
     # Normalization
     "NormalizationPolicy",
+    "NormalizationPackage",
     # Enrichment
     "EnrichmentPolicy",
+    "EnrichmentSpecification",
 ]

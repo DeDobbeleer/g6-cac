@@ -17,8 +17,8 @@ from .models import (
     Repo, HiddenRepoPath,
     RoutingPolicy, RoutingCriterion,
     ProcessingPolicy,
-    NormalizationPolicy,
-    EnrichmentPolicy,
+    NormalizationPolicy, NormalizationPackage,
+    EnrichmentPolicy, EnrichmentSpecification,
     Fleet, FleetMetadata, FleetSpec, DirectorConfig, Nodes,
     DataNode, SearchHead, AIO,
 )
@@ -105,34 +105,44 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                 NormalizationPolicy(
                     name="np-auto",
                     id="np-auto",
-                    package="auto-normalization",
-                    description="Automatic log parsing"
+                    normalization_packages=[
+                        NormalizationPackage(id="pkg-auto", name="AutoParser")
+                    ]
                 ),
                 NormalizationPolicy(
                     name="np-windows",
                     id="np-windows",
-                    package="windows-normalization",
-                    description="Windows event log parsing"
+                    normalization_packages=[
+                        NormalizationPackage(id="pkg-windows", name="Windows"),
+                        NormalizationPackage(id="pkg-winsec", name="WinSecurity")
+                    ],
+                    compiled_normalizer=[
+                        NormalizationPackage(id="cnf-windows", name="WindowsCompiled")
+                    ]
                 ),
                 NormalizationPolicy(
                     name="np-linux",
                     id="np-linux",
-                    package="linux-syslog-normalization",
-                    description="Linux syslog parsing"
+                    normalization_packages=[
+                        NormalizationPackage(id="pkg-syslog", name="Syslog"),
+                        NormalizationPackage(id="pkg-auth", name="LinuxAuth")
+                    ]
                 ),
             ],
             enrichment_policies=[
                 EnrichmentPolicy(
                     name="ep-geoip",
                     id="ep-geoip",
-                    sources=[{"source": "geoip-db"}],
-                    description="GeoIP enrichment"
+                    specifications=[
+                        EnrichmentSpecification(id="spec-geoip", source="GeoIP", fields=["src_ip", "dst_ip"])
+                    ]
                 ),
                 EnrichmentPolicy(
                     name="ep-threatintel",
                     id="ep-threatintel",
-                    sources=[{"source": "threat-intel-feed"}],
-                    description="Threat intelligence enrichment"
+                    specifications=[
+                        EnrichmentSpecification(id="spec-threat", source="ThreatIntel", fields=["ip", "domain"])
+                    ]
                 ),
             ],
             processing_policies=[
@@ -385,16 +395,20 @@ def _generate_mssp_templates(base_dir: Path) -> None:
                 NormalizationPolicy(
                     name="np-banking",
                     id="np-banking",
-                    package="banking-transaction-normalization",
-                    description="Banking transaction log parsing"
+                    normalization_packages=[
+                        NormalizationPackage(id="pkg-swift", name="SWIFT"),
+                        NormalizationPackage(id="pkg-sepa", name="SEPA")
+                    ]
                 ),
             ],
             enrichment_policies=[
                 EnrichmentPolicy(
                     name="ep-mifid",
                     id="ep-mifid",
-                    sources=[{"source": "mifid-compliance-db"}, {"source": "swift-reference"}],
-                    description="MiFID compliance enrichment"
+                    specifications=[
+                        EnrichmentSpecification(id="spec-mifid", source="MiFID", fields=["transaction_id", "client_ref"]),
+                        EnrichmentSpecification(id="spec-swift", source="SWIFTRef", fields=["bic", "iban"])
+                    ]
                 ),
             ],
             processing_policies=[
