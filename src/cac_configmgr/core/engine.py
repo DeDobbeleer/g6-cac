@@ -162,21 +162,30 @@ class ResolutionEngine:
 
 
 def filter_internal_ids(obj: Any) -> Any:
-    """Remove all internal fields (starting with _) from object.
+    """Remove all internal fields from object before sending to API.
     
-    This is the final step before sending to API.
+    Internal fields include:
+    - Fields starting with _ (e.g., _id, _action)
+    - Template-specific fields that become 'id', 'first', 'last', etc.
     
     Args:
         obj: Object to filter (dict, list, or primitive)
         
     Returns:
-        Object with _fields removed
+        Object with internal fields removed
     """
+    # Internal fields that should not be sent to API
+    # (either from _field or field after Pydantic conversion)
+    internal_fields = {
+        "id", "action",  # from _id, _action
+        "first", "last", "after", "before", "position",  # ordering fields
+    }
+    
     if isinstance(obj, dict):
         return {
             k: filter_internal_ids(v)
             for k, v in obj.items()
-            if not k.startswith("_")
+            if not k.startswith("_") and k not in internal_fields
         }
     elif isinstance(obj, list):
         return [filter_internal_ids(item) for item in obj]

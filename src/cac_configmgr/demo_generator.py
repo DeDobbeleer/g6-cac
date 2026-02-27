@@ -99,6 +99,26 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                     ]
                 ),
             ],
+            processing_policies=[
+                ProcessingPolicy(
+                    name="pp-default",
+                    id="pp-default",
+                    routing_policy="rp-default",
+                    description="Default processing pipeline"
+                ),
+                ProcessingPolicy(
+                    name="pp-windows",
+                    id="pp-windows",
+                    routing_policy="rp-windows",
+                    description="Windows log processing"
+                ),
+                ProcessingPolicy(
+                    name="pp-linux",
+                    id="pp-linux",
+                    routing_policy="rp-linux",
+                    description="Linux log processing"
+                ),
+            ],
         )
     )
     save_multi_file_template(base_dir / "golden-base", golden_base)
@@ -318,6 +338,14 @@ def _generate_mssp_templates(base_dir: Path) -> None:
                         RoutingCriterion(id="crit-mifid", type="KeyPresent",
                                         key="mifid_transaction", repo="repo-trading"),
                     ]
+                ),
+            ],
+            processing_policies=[
+                ProcessingPolicy(
+                    name="pp-banking-audit",
+                    id="pp-banking-audit",
+                    routing_policy="rp-banking-audit",
+                    description="Banking audit processing"
                 ),
             ],
         )
