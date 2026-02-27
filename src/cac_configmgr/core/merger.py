@@ -14,11 +14,25 @@ class MergeError(Exception):
     pass
 
 
+def _get_resource_name(resource: dict) -> str | None:
+    """Get resource identifier from various possible name fields.
+    
+    Different resource types use different name fields:
+    - repos: 'name'
+    - routing_policies: 'policy_name'
+    - processing_policies: 'name'
+    """
+    for key in ["name", "policy_name"]:
+        if key in resource:
+            return resource[key]
+    return None
+
+
 def merge_resources(base_list: list[dict], override_list: list[dict]) -> list[dict]:
     """Merge two resource lists by name.
     
     Strategy:
-    - Same 'name': Deep merge (recurse into lists with _id matching)
+    - Same 'name'/'policy_name': Deep merge (recurse into lists with _id matching)
     - New name: Append
     - Explicit _action: 'delete': Remove
     
@@ -36,15 +50,19 @@ def merge_resources(base_list: list[dict], override_list: list[dict]) -> list[di
         [{"name": "repo-secu", "retention": 90}]
     """
     # Index base resources by name for O(1) lookup
-    result = {r["name"]: r for r in base_list}
+    result = {}
+    for r in base_list:
+        name = _get_resource_name(r)
+        if name:
+            result[name] = r
     
     for resource in override_list:
-        name = resource.get("name")
+        name = _get_resource_name(resource)
         if name is None:
-            raise MergeError(f"Resource missing 'name' field: {resource}")
+            raise MergeError(f"Resource missing 'name' or 'policy_name' field: {resource}")
         
         # Check for explicit deletion
-        if resource.get("_action") == "delete":
+        if resource.get("action") == "delete" or resource.get("_action") == "delete":
             result.pop(name, None)
             continue
         

@@ -11,7 +11,7 @@ from rich.table import Table
 from rich import box
 
 from ..utils import load_yaml, load_instance, load_fleet, load_multi_file_template, YamlError
-from ..core import ResolutionEngine, filter_internal_ids
+from ..core import ResolutionEngine, filter_internal_ids, ConsistencyValidator
 
 app = typer.Typer(help="Configuration as Code Manager for LogPoint")
 console = Console()
@@ -135,6 +135,21 @@ def plan(
             for name, value in resolved.variables.items():
                 var_table.add_row(name, str(value))
             console.print(var_table)
+            console.print()
+        
+        # Validate resource consistency
+        validator = ConsistencyValidator(resolved.resources)
+        consistency_errors = validator.validate()
+        
+        if consistency_errors:
+            console.print("[bold red]Consistency Errors:[/bold red]")
+            for error in consistency_errors:
+                console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}.{error.field}: {error.message}")
+            console.print()
+            console.print("[yellow]⚠ Configuration has consistency issues. Review before applying.[/yellow]")
+            console.print()
+        else:
+            console.print("[green]✓ All resource references are consistent[/green]")
             console.print()
         
         # Show template chain

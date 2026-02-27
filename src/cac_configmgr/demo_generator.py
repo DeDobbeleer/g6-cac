@@ -121,13 +121,15 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                     HiddenRepoPath(id="primary", path="/opt/immune/storage-nfs", retention="{{retention_pci}}")
                 ]),
             ],
-            processing_policies=[
-                ProcessingPolicy(
-                    name="pp-pci-audit",
-                    id="pp-pci-audit",
-                    routing_policy="rp-pci-audit",
-                    normalization_policy="np-auto",
-                    enrichment_policy="ep-pci-fields",
+            routing_policies=[
+                RoutingPolicy(
+                    policy_name="rp-pci-audit",
+                    id="rp-pci-audit",
+                    catch_all="repo-pci-audit",
+                    routing_criteria=[
+                        RoutingCriterion(id="crit-audit", type="KeyPresent",
+                                        key="audit_event", repo="repo-pci-audit"),
+                    ]
                 ),
             ],
         )
@@ -293,7 +295,7 @@ def _generate_mssp_templates(base_dir: Path) -> None:
     banking_premium = ConfigTemplate(
         metadata=TemplateMetadata(
             name="acme-banking-premium",
-            extends="mssp/acme-corp/profiles/enterprise",  # Could also extend addon
+            extends="mssp/acme-corp/addons/banking",  # Extends banking addon
             version="1.0.0",
             provider="acme-mssp"
         ),
@@ -301,13 +303,21 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             vars={
                 "compliance": "mifid-banking",
             },
-            processing_policies=[
-                ProcessingPolicy(
-                    name="pp-banking-audit",
-                    id="pp-banking-audit",
-                    routing_policy="rp-banking-audit",
-                    normalization_policy="np-banking",
-                    enrichment_policy="ep-mifid",
+            repos=[
+                # Add long-term archive for banking compliance
+                Repo(name="repo-banking-archive", hiddenrepopath=[
+                    HiddenRepoPath(id="primary", path="/opt/immune/storage-nfs", retention=3650),
+                ]),
+            ],
+            routing_policies=[
+                RoutingPolicy(
+                    policy_name="rp-banking-audit",
+                    id="rp-banking-audit",
+                    catch_all="repo-trading",
+                    routing_criteria=[
+                        RoutingCriterion(id="crit-mifid", type="KeyPresent",
+                                        key="mifid_transaction", repo="repo-trading"),
+                    ]
                 ),
             ],
         )

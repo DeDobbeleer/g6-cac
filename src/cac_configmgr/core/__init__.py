@@ -35,6 +35,12 @@ from .engine import (
     filter_internal_ids,
 )
 
+from .validator import (
+    ConsistencyValidator,
+    ValidationError,
+    validate_resources,
+)
+
 __all__ = [
     # Resolver
     "TemplateResolver",
@@ -57,4 +63,8 @@ __all__ = [
     "ResolutionEngine",
     "ResolvedConfiguration",
     "filter_internal_ids",
+    # Validator
+    "ConsistencyValidator",
+    "ValidationError",
+    "validate_resources",
 ]
