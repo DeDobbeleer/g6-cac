@@ -145,8 +145,9 @@ class ResolutionEngine:
                 
                 # Convert Pydantic models to dicts for merging
                 # Use by_alias=False to keep Python field names (snake_case)
+                # Don't exclude_none to preserve optional fields like enrichment_policy
                 resource_dicts = [
-                    r.model_dump(by_alias=False, exclude_none=True) if hasattr(r, "model_dump") else r
+                    r.model_dump(by_alias=False, exclude_none=False) if hasattr(r, "model_dump") else r
                     for r in resource_list
                 ]
                 
@@ -168,11 +169,13 @@ def filter_internal_ids(obj: Any) -> Any:
     - Fields starting with _ (e.g., _id, _action)
     - Template-specific fields that become 'id', 'first', 'last', etc.
     
+    Note: None values are converted to string "None" as required by LogPoint API.
+    
     Args:
         obj: Object to filter (dict, list, or primitive)
         
     Returns:
-        Object with internal fields removed
+        Object with internal fields removed and None converted to "None"
     """
     # Internal fields that should not be sent to API
     # (either from _field or field after Pydantic conversion)
@@ -182,11 +185,17 @@ def filter_internal_ids(obj: Any) -> Any:
     }
     
     if isinstance(obj, dict):
-        return {
-            k: filter_internal_ids(v)
-            for k, v in obj.items()
-            if not k.startswith("_") and k not in internal_fields
-        }
+        result = {}
+        for k, v in obj.items():
+            # Skip internal fields
+            if k.startswith("_") or k in internal_fields:
+                continue
+            # Convert None to string "None"
+            if v is None:
+                result[k] = "None"
+            else:
+                result[k] = filter_internal_ids(v)
+        return result
     elif isinstance(obj, list):
         return [filter_internal_ids(item) for item in obj]
     else:
