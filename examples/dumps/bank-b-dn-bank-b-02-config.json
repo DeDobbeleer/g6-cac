@@ -1,0 +1,273 @@
+{
+  "node_name": "dn-bank-b-02",
+  "logpoint_id": "lp-bank-b-p2",
+  "tags": [
+    {
+      "cluster": "production"
+    },
+    {
+      "env": "prod"
+    },
+    {
+      "region": "us-east-1"
+    }
+  ],
+  "config": {
+    "node_type": "DataNode",
+    "resources": {
+      "repos": [
+        {
+          "name": "repo-default",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 180
+            }
+          ]
+        },
+        {
+          "name": "repo-secu",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 365
+            },
+            {
+              "path": "None",
+              "retention": 90
+            },
+            {
+              "path": "/opt/immune/storage-warm",
+              "retention": 365
+            }
+          ]
+        },
+        {
+          "name": "repo-secu-verbose",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 30
+            }
+          ]
+        },
+        {
+          "name": "repo-system",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 180
+            }
+          ]
+        },
+        {
+          "name": "repo-system-verbose",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 30
+            }
+          ]
+        },
+        {
+          "name": "repo-cloud",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 180
+            }
+          ]
+        },
+        {
+          "name": "repo-pci-audit",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage-nfs",
+              "retention": 2555
+            }
+          ]
+        },
+        {
+          "name": "repo-archive",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage-warm",
+              "retention": 90
+            },
+            {
+              "path": "/opt/immune/storage-cold",
+              "retention": 1095
+            }
+          ]
+        },
+        {
+          "name": "repo-trading",
+          "hiddenrepopath": [
+            {
+              "path": "/opt/immune/storage",
+              "retention": 1
+            },
+            {
+              "path": "/opt/immune/storage-warm",
+              "retention": 7
+            },
+            {
+              "path": "/opt/immune/storage-nfs",
+              "retention": 2555
+            }
+          ]
+        }
+      ],
+      "routing_policies": [
+        {
+          "policy_name": "rp-default",
+          "catch_all": "repo-system",
+          "routing_criteria": []
+        },
+        {
+          "policy_name": "rp-windows",
+          "catch_all": "repo-system",
+          "routing_criteria": [
+            {
+              "type": "KeyPresentValueMatches",
+              "key": "EventType",
+              "value": "Verbose",
+              "repo": "repo-system-verbose",
+              "drop": "store"
+            }
+          ]
+        },
+        {
+          "policy_name": "rp-linux",
+          "catch_all": "repo-system",
+          "routing_criteria": [
+            {
+              "type": "KeyPresentValueMatches",
+              "key": "severity",
+              "value": "debug",
+              "repo": "repo-system-verbose",
+              "drop": "store"
+            }
+          ]
+        },
+        {
+          "policy_name": "rp-pci-audit",
+          "catch_all": "repo-pci-audit",
+          "routing_criteria": [
+            {
+              "type": "KeyPresent",
+              "key": "audit_event",
+              "value": "None",
+              "repo": "repo-pci-audit",
+              "drop": "store"
+            }
+          ]
+        },
+        {
+          "policy_name": "rp-trading",
+          "catch_all": "repo-trading",
+          "routing_criteria": [
+            {
+              "type": "KeyPresent",
+              "key": "high_frequency",
+              "value": "None",
+              "repo": "repo-trading",
+              "drop": "store"
+            }
+          ]
+        }
+      ],
+      "processing_policies": [
+        {
+          "name": "pp-default",
+          "routing_policy": "rp-default",
+          "normalization_policy": "np-auto",
+          "enrichment_policy": "None",
+          "description": "Default processing pipeline",
+          "enabled": true
+        },
+        {
+          "name": "pp-windows",
+          "routing_policy": "rp-windows",
+          "normalization_policy": "np-windows",
+          "enrichment_policy": "ep-geoip",
+          "description": "Windows log processing",
+          "enabled": true
+        },
+        {
+          "name": "pp-linux",
+          "routing_policy": "rp-linux",
+          "normalization_policy": "np-linux",
+          "enrichment_policy": "ep-threatintel",
+          "description": "Linux log processing",
+          "enabled": true
+        }
+      ],
+      "normalization_policies": [
+        {
+          "name": "np-auto",
+          "normalization_packages": [
+            {
+              "name": "AutoParser"
+            }
+          ],
+          "compiled_normalizer": []
+        },
+        {
+          "name": "np-windows",
+          "normalization_packages": [
+            {
+              "name": "Windows"
+            },
+            {
+              "name": "WinSecurity"
+            }
+          ],
+          "compiled_normalizer": [
+            {
+              "name": "WindowsCompiled"
+            }
+          ]
+        },
+        {
+          "name": "np-linux",
+          "normalization_packages": [
+            {
+              "name": "Syslog"
+            },
+            {
+              "name": "LinuxAuth"
+            }
+          ],
+          "compiled_normalizer": []
+        }
+      ],
+      "enrichment_policies": [
+        {
+          "name": "ep-geoip",
+          "specifications": [
+            {
+              "source": "GeoIP",
+              "fields": [
+                "src_ip",
+                "dst_ip"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ep-threatintel",
+          "specifications": [
+            {
+              "source": "ThreatIntel",
+              "fields": [
+                "ip",
+                "domain"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

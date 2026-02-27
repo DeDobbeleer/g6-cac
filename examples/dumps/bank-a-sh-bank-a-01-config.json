@@ -1,0 +1,22 @@
+{
+  "node_name": "sh-bank-a-01",
+  "logpoint_id": "lp-bank-a-s1",
+  "tags": [
+    {
+      "cluster": "frontend"
+    },
+    {
+      "env": "prod"
+    },
+    {
+      "sh-for": "production"
+    }
+  ],
+  "config": {
+    "node_type": "SearchHead",
+    "resources": {
+      "alert_rules": [],
+      "dashboards": []
+    }
+  }
+}
