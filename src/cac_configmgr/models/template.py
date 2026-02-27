@@ -6,7 +6,7 @@ Based on 20-TEMPLATE-HIERARCHY.md specification.
 from __future__ import annotations
 
 from typing import Any, Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from .repos import Repo
 from .routing import RoutingPolicy
@@ -23,6 +23,8 @@ class TemplateMetadata(BaseModel):
           version: "1.0.0"
           provider: acme-mssp
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     extends: str | None = Field(default=None, description="Parent template reference")
     version: str = Field(default="1.0.0", pattern=r"^\d+\.\d+\.\d+$")
@@ -83,6 +85,8 @@ class TemplateSpec(BaseModel):
               _id: rp-windows
               catch_all: repo-system
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     vars: dict[str, Any] = Field(default_factory=dict, description="Variables for interpolation")
     repos: list[Repo] = Field(default_factory=list, alias="repos")
     routing_policies: list[RoutingPolicy] = Field(default_factory=list, alias="routingPolicies")
@@ -118,7 +122,7 @@ class TemplateSpec(BaseModel):
             # Different resources have different name fields
             resource_name = getattr(resource, "name", None) or \
                           getattr(resource, "policy_name", None) or \
-                          getattr(resource, "_id", None)
+                          getattr(resource, "id", None)
             if resource_name == name:
                 return resource
         return None
@@ -147,6 +151,8 @@ class ConfigTemplate(BaseModel):
                   path: /opt/immune/storage
                   retention: 365
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     api_version: str = Field(default="cac-configmgr.io/v1", alias="apiVersion")
     kind: Literal["ConfigTemplate"] = Field(default="ConfigTemplate")
     metadata: TemplateMetadata
@@ -183,6 +189,8 @@ class InstanceMetadata(BaseModel):
           extends: mssp/acme-corp/profiles/enterprise
           fleetRef: ./fleet.yaml
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     extends: str = Field(..., description="Profile template to instantiate")
     fleet_ref: str = Field(..., alias="fleetRef", description="Path to fleet.yaml")
@@ -210,6 +218,8 @@ class TopologyInstance(BaseModel):
                 - _id: nfs-tier
                   retention: 3650  # Override: 10 years for banking
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     api_version: str = Field(default="cac-configmgr.io/v1", alias="apiVersion")
     kind: Literal["TopologyInstance"] = Field(default="TopologyInstance")
     metadata: InstanceMetadata

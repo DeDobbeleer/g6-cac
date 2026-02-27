@@ -10,7 +10,7 @@ Processing Policy is a "glue" resource that links:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class ProcessingPolicy(BaseModel):
@@ -29,8 +29,10 @@ class ProcessingPolicy(BaseModel):
             description: "Complete pipeline for Windows security logs"
             enabled: true
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
-    _id: str = Field(..., description="Template ID for inheritance matching")
+    id: str = Field(..., alias="_id", description="Template ID for inheritance matching")
     
     # Policy references (links to other resources)
     routing_policy: str = Field(..., alias="routingPolicy", description="Reference to RoutingPolicy")
@@ -42,7 +44,7 @@ class ProcessingPolicy(BaseModel):
     enabled: bool = Field(default=True)
     
     # Template internal fields
-    _action: str | None = Field(default=None, description="Action: delete, etc.")
+    action: str | None = Field(default=None, alias="_action", description="Action: delete, etc.")
     
     def get_referenced_policies(self) -> dict[str, str | None]:
         """Get all referenced policy names.

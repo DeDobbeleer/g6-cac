@@ -6,7 +6,7 @@ Based on 10-INVENTORY-FLEET.md specification.
 from __future__ import annotations
 
 from typing import Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class Tag(BaseModel):
@@ -17,6 +17,8 @@ class Tag(BaseModel):
         - env: staging
         - sh-for: production
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     key: str = Field(..., min_length=1, pattern=r"^[a-z0-9-]+$")
     value: str = Field(..., min_length=1)
     
@@ -34,6 +36,8 @@ class Tag(BaseModel):
 
 class Node(BaseModel):
     """Base class for all node types (AIO, DataNode, SearchHead)."""
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1, pattern=r"^[a-z0-9-]+$")
     logpoint_id: str = Field(..., alias="logpointId", min_length=1)
     tags: list[Tag] = Field(default_factory=list)
@@ -41,14 +45,24 @@ class Node(BaseModel):
     @field_validator("tags", mode="before")
     @classmethod
     def parse_tags(cls, v):
-        """Parse tags from YAML format [{'key': 'value'}, ...]."""
+        """Parse tags from YAML format.
+        
+        Supports two formats:
+        - Simple: [{"cluster": "production"}, {"env": "prod"}]
+        - Explicit: [{"key": "cluster", "value": "production"}]
+        """
         if isinstance(v, list):
             result = []
             for item in v:
-                if isinstance(item, dict):
-                    result.append(Tag.from_dict(item))
-                elif isinstance(item, Tag):
+                if isinstance(item, Tag):
                     result.append(item)
+                elif isinstance(item, dict):
+                    # Check if explicit format (has key and value fields)
+                    if "key" in item and "value" in item:
+                        result.append(Tag(key=item["key"], value=item["value"]))
+                    else:
+                        # Simple format: single-key dict
+                        result.append(Tag.from_dict(item))
                 else:
                     raise ValueError(f"Invalid tag format: {item}")
             return result
@@ -87,6 +101,8 @@ class SearchHead(Node):
 
 class DirectorConfig(BaseModel):
     """Director API configuration."""
+    model_config = ConfigDict(populate_by_name=True)
+    
     pool_uuid: str = Field(..., alias="poolUuid")
     api_host: str = Field(..., alias="apiHost")
     credentials_ref: str = Field(..., alias="credentialsRef")
@@ -94,6 +110,8 @@ class DirectorConfig(BaseModel):
 
 class FleetSpec(BaseModel):
     """Fleet specification."""
+    model_config = ConfigDict(populate_by_name=True)
+    
     management_mode: str = Field(default="director", alias="managementMode")
     director: DirectorConfig | None = None
     nodes: Nodes
@@ -101,6 +119,8 @@ class FleetSpec(BaseModel):
 
 class Nodes(BaseModel):
     """Collection of all node types."""
+    model_config = ConfigDict(populate_by_name=True)
+    
     aios: list[AIO] = Field(default_factory=list)
     data_nodes: list[DataNode] = Field(default_factory=list, alias="dataNodes")
     search_heads: list[SearchHead] = Field(default_factory=list, alias="searchHeads")
@@ -108,6 +128,8 @@ class Nodes(BaseModel):
 
 class FleetMetadata(BaseModel):
     """Fleet metadata."""
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1)
 
 
@@ -133,6 +155,8 @@ class Fleet(BaseModel):
                   - cluster: production
                   - env: prod
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     api_version: str = Field(default="cac-configmgr.io/v1", alias="apiVersion")
     kind: str = Field(default="Fleet")
     metadata: FleetMetadata

@@ -55,46 +55,46 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-default", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention="{{retention_default}}")
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention="{{retention_default}}")
                 ]),
                 Repo(name="repo-secu", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention="{{retention_sec}}")
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention="{{retention_sec}}")
                 ]),
                 Repo(name="repo-secu-verbose", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention=30)
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention=30)
                 ]),
                 Repo(name="repo-system", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention=180)
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention=180)
                 ]),
                 Repo(name="repo-system-verbose", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention=30)
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention=30)
                 ]),
                 Repo(name="repo-cloud", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention=180)
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention=180)
                 ]),
             ],
             routing_policies=[
                 RoutingPolicy(
                     policy_name="rp-default",
-                    _id="rp-default",
+                    id="rp-default",
                     catch_all="repo-system",
                     routing_criteria=[]
                 ),
                 RoutingPolicy(
                     policy_name="rp-windows",
-                    _id="rp-windows",
+                    id="rp-windows",
                     catch_all="repo-system",
                     routing_criteria=[
-                        RoutingCriterion(_id="crit-verbose", type="KeyPresentValueMatches", 
+                        RoutingCriterion(id="crit-verbose", type="KeyPresentValueMatches", 
                                         key="EventType", value="Verbose", repo="repo-system-verbose"),
                     ]
                 ),
                 RoutingPolicy(
                     policy_name="rp-linux",
-                    _id="rp-linux",
+                    id="rp-linux",
                     catch_all="repo-system",
                     routing_criteria=[
-                        RoutingCriterion(_id="crit-debug", type="KeyPresentValueMatches",
+                        RoutingCriterion(id="crit-debug", type="KeyPresentValueMatches",
                                         key="severity", value="debug", repo="repo-system-verbose"),
                     ]
                 ),
@@ -118,13 +118,13 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
             repos=[
                 # Add compliance repo with long retention
                 Repo(name="repo-pci-audit", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="/opt/immune/storage-nfs", retention="{{retention_pci}}")
+                    HiddenRepoPath(id="primary", path="/opt/immune/storage-nfs", retention="{{retention_pci}}")
                 ]),
             ],
             processing_policies=[
                 ProcessingPolicy(
                     name="pp-pci-audit",
-                    _id="pp-pci-audit",
+                    id="pp-pci-audit",
                     routing_policy="rp-pci-audit",
                     normalization_policy="np-auto",
                     enrichment_policy="ep-pci-fields",
@@ -148,7 +148,7 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-iso-audit", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="/opt/immune/storage-nfs", retention="{{retention_iso}}")
+                    HiddenRepoPath(id="primary", path="/opt/immune/storage-nfs", retention="{{retention_iso}}")
                 ]),
             ],
         )
@@ -176,13 +176,13 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             repos=[
                 # Merge: Override retention for repo-secu
                 Repo(name="repo-secu", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", retention=90),  # 365→90
-                    HiddenRepoPath(_id="warm-tier", path="{{mount_warm}}", retention=365),
+                    HiddenRepoPath(id="primary", retention=90),  # 365→90
+                    HiddenRepoPath(id="warm-tier", path="{{mount_warm}}", retention=365),
                 ]),
                 # Add archive repo with multi-tier
                 Repo(name="repo-archive", hiddenrepopath=[
-                    HiddenRepoPath(_id="warm-tier", path="{{mount_warm}}", retention=90),
-                    HiddenRepoPath(_id="cold-tier", path="{{mount_cold}}", retention=1095),
+                    HiddenRepoPath(id="warm-tier", path="{{mount_warm}}", retention=90),
+                    HiddenRepoPath(id="cold-tier", path="{{mount_cold}}", retention=1095),
                 ]),
             ],
         )
@@ -205,18 +205,18 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-trading", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", path="{{mount_point}}", retention=1),  # Very short
-                    HiddenRepoPath(_id="warm-tier", path="{{mount_warm}}", retention=7),
-                    HiddenRepoPath(_id="nfs-tier", path="/opt/immune/storage-nfs", retention=2555),
+                    HiddenRepoPath(id="primary", path="{{mount_point}}", retention=1),  # Very short
+                    HiddenRepoPath(id="warm-tier", path="{{mount_warm}}", retention=7),
+                    HiddenRepoPath(id="nfs-tier", path="/opt/immune/storage-nfs", retention=2555),
                 ]),
             ],
             routing_policies=[
                 RoutingPolicy(
                     policy_name="rp-trading",
-                    _id="rp-trading",
+                    id="rp-trading",
                     catch_all="repo-trading",
                     routing_criteria=[
-                        RoutingCriterion(_id="crit-high-freq", type="KeyPresent",
+                        RoutingCriterion(id="crit-high-freq", type="KeyPresent",
                                         key="high_frequency", repo="repo-trading"),
                     ]
                 ),
@@ -239,7 +239,7 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-phi", hiddenrepopath=[  # PHI = Protected Health Info
-                    HiddenRepoPath(_id="primary", path="/opt/immune/storage-encrypted", retention="{{retention_hipaa}}")
+                    HiddenRepoPath(id="primary", path="/opt/immune/storage-encrypted", retention="{{retention_hipaa}}")
                 ]),
             ],
         )
@@ -278,10 +278,10 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-secu", hiddenrepopath=[
-                    HiddenRepoPath(_id="primary", retention=7),  # Even shorter on fast
-                    HiddenRepoPath(_id="warm-tier", retention=90),
-                    HiddenRepoPath(_id="cold-tier", retention=730),
-                    HiddenRepoPath(_id="nfs-tier", path="/opt/immune/storage-nfs", retention=3650),
+                    HiddenRepoPath(id="primary", retention=7),  # Even shorter on fast
+                    HiddenRepoPath(id="warm-tier", retention=90),
+                    HiddenRepoPath(id="cold-tier", retention=730),
+                    HiddenRepoPath(id="nfs-tier", path="/opt/immune/storage-nfs", retention=3650),
                 ]),
             ],
         )
@@ -304,7 +304,7 @@ def _generate_mssp_templates(base_dir: Path) -> None:
             processing_policies=[
                 ProcessingPolicy(
                     name="pp-banking-audit",
-                    _id="pp-banking-audit",
+                    id="pp-banking-audit",
                     routing_policy="rp-banking-audit",
                     normalization_policy="np-banking",
                     enrichment_policy="ep-mifid",
@@ -335,7 +335,7 @@ def _generate_client_instances(base_dir: Path) -> None:
             },
             repos=[
                 Repo(name="repo-secu", hiddenrepopath=[
-                    HiddenRepoPath(_id="nfs-tier", retention=3650),  # 10 years
+                    HiddenRepoPath(id="nfs-tier", retention=3650),  # 10 years
                 ]),
             ],
         )

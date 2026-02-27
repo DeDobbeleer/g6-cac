@@ -137,22 +137,18 @@ class TemplateResolver:
         # "logpoint/golden-base" -> templates/logpoint/golden-base/
         template_path = self.templates_dir / ref.replace("/", "/")
         
-        # Look for template files (multi-file structure)
-        # In a real implementation, we'd load and merge all files
-        # For now, just check existence
         if not template_path.exists():
             raise TemplateNotFoundError(f"Template not found: {ref} (looked in {template_path})")
         
-        # TODO: Load actual template from YAML files
-        # This would involve:
-        # 1. Find all .yaml files in template_path
-        # 2. Parse each file
-        # 3. Merge files with same metadata.name
-        # 4. Return ConfigTemplate
+        # Load multi-file template
+        from ..utils import load_multi_file_template
         
-        raise NotImplementedError(
-            f"Template loading not fully implemented. Would load from: {template_path}"
-        )
+        try:
+            template = load_multi_file_template(template_path)
+            self._cache[ref] = template
+            return template
+        except Exception as e:
+            raise TemplateNotFoundError(f"Failed to load template {ref}: {e}")
     
     def clear_cache(self) -> None:
         """Clear template cache."""

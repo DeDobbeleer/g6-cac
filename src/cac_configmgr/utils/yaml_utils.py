@@ -184,6 +184,32 @@ def save_instance(path: Path, instance: TopologyInstance, comment: str | None = 
     save_yaml(path, data, comment)
 
 
+def _convert_tags_for_yaml(data: dict) -> dict:
+    """Convert tags from model format to simple dict format.
+    
+    Model format: [{"key": "cluster", "value": "prod"}, ...]
+    YAML format: [{"cluster": "prod"}, ...]
+    """
+    if isinstance(data, dict):
+        result = {}
+        for k, v in data.items():
+            if k == "tags" and isinstance(v, list):
+                # Convert tags to simple dict format
+                result[k] = []
+                for tag in v:
+                    if isinstance(tag, dict) and "key" in tag and "value" in tag:
+                        result[k].append({tag["key"]: tag["value"]})
+                    else:
+                        result[k].append(tag)
+            else:
+                result[k] = _convert_tags_for_yaml(v)
+        return result
+    elif isinstance(data, list):
+        return [_convert_tags_for_yaml(item) for item in data]
+    else:
+        return data
+
+
 def save_fleet(path: Path, fleet: Fleet, comment: str | None = None) -> None:
     """Save Fleet to YAML file.
     
@@ -193,6 +219,8 @@ def save_fleet(path: Path, fleet: Fleet, comment: str | None = None) -> None:
         comment: Optional header comment
     """
     data = fleet.model_dump(by_alias=True, exclude_none=True)
+    # Convert tags to simple format for cleaner YAML
+    data = _convert_tags_for_yaml(data)
     save_yaml(path, data, comment)
 
 
@@ -264,6 +292,7 @@ def save_multi_file_template(template_dir: Path, template: ConfigTemplate) -> No
     """Save ConfigTemplate to multi-file directory structure.
     
     Resources are split by type into separate files:
+    - vars.yaml (template variables)
     - repos.yaml
     - routing-policies.yaml
     - etc.
@@ -280,6 +309,23 @@ def save_multi_file_template(template_dir: Path, template: ConfigTemplate) -> No
     # Common metadata for all files
     metadata = full_data.get("metadata", {})
     
+    spec = full_data.get("spec", {})
+    
+    # Save vars first (if any)
+    vars_data = spec.get("vars", {})
+    if vars_data:
+        vars_file_data = {
+            "apiVersion": full_data.get("apiVersion", "cac-configmgr.io/v1"),
+            "kind": "ConfigTemplate",
+            "metadata": metadata,
+            "spec": {"vars": vars_data}
+        }
+        save_yaml(
+            template_dir / "vars.yaml",
+            vars_file_data,
+            comment="CaC-ConfigMgr Template - variables"
+        )
+    
     # Split by resource type
     resource_types = {
         "repos": "repos.yaml",
@@ -288,8 +334,6 @@ def save_multi_file_template(template_dir: Path, template: ConfigTemplate) -> No
         "normalizationPolicies": "normalization-policies.yaml",
         "enrichmentPolicies": "enrichment-policies.yaml",
     }
-    
-    spec = full_data.get("spec", {})
     
     for resource_key, filename in resource_types.items():
         if resource_key in spec and spec[resource_key]:

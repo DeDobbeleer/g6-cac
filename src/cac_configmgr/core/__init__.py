@@ -32,6 +32,7 @@ from .interpolator import (
 from .engine import (
     ResolutionEngine,
     ResolvedConfiguration,
+    filter_internal_ids,
 )
 
 __all__ = [
@@ -55,4 +56,5 @@ __all__ = [
     # Engine
     "ResolutionEngine",
     "ResolvedConfiguration",
+    "filter_internal_ids",
 ]

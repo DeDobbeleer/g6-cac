@@ -5,7 +5,7 @@ Based on 20-TEMPLATE-HIERARCHY.md specification (Appendix D).
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class RoutingCriterion(BaseModel):
@@ -23,7 +23,9 @@ class RoutingCriterion(BaseModel):
             value: Verbose
             drop: store
     """
-    _id: str = Field(..., description="Template ID for matching and ordering")
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(..., alias="_id", description="Template ID for matching and ordering")
     
     # Matching fields
     type: str = Field(..., description="Match type: KeyPresent, KeyPresentValueMatches, etc.")
@@ -35,14 +37,14 @@ class RoutingCriterion(BaseModel):
     drop: str = Field(default="store", description="Action: store, discard_raw, discard_entirely")
     
     # Ordering fields
-    _after: str | None = Field(default=None, description="Insert after this criterion")
-    _before: str | None = Field(default=None, description="Insert before this criterion")
-    _position: int | None = Field(default=None, description="Absolute position")
-    _first: bool = Field(default=False, description="Force first position")
-    _last: bool = Field(default=False, description="Force last position")
+    after: str | None = Field(default=None, alias="_after", description="Insert after this criterion")
+    before: str | None = Field(default=None, alias="_before", description="Insert before this criterion")
+    position: int | None = Field(default=None, alias="_position", description="Absolute position")
+    first: bool = Field(default=False, alias="_first", description="Force first position")
+    last: bool = Field(default=False, alias="_last", description="Force last position")
     
     # Action for inheritance
-    _action: str | None = Field(default=None, description="Action: delete, merge, etc.")
+    action: str | None = Field(default=None, alias="_action", description="Action: delete, merge, etc.")
 
 
 class RoutingPolicy(BaseModel):
@@ -67,18 +69,20 @@ class RoutingPolicy(BaseModel):
                 type: KeyPresent
                 key: DebugMode
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     policy_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
-    _id: str = Field(..., description="Template ID for policy matching")
+    id: str = Field(..., alias="_id", description="Template ID for policy matching")
     catch_all: str = Field(..., description="Default repo if no criteria match")
     routing_criteria: list[RoutingCriterion] = Field(default_factory=list)
     
     # Template internal fields
-    _action: str | None = Field(default=None, description="Action: delete, etc.")
+    action: str | None = Field(default=None, alias="_action", description="Action: delete, etc.")
     
     def get_criterion(self, criterion_id: str) -> RoutingCriterion | None:
         """Get a specific criterion by _id."""
         for crit in self.routing_criteria:
-            if crit._id == criterion_id:
+            if crit.id == criterion_id:
                 return crit
         return None
     

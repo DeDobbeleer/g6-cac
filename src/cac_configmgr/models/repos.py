@@ -5,7 +5,7 @@ Based on 20-TEMPLATE-HIERARCHY.md specification.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class HiddenRepoPath(BaseModel):
@@ -26,16 +26,18 @@ class HiddenRepoPath(BaseModel):
             path: /opt/immune/storage-nfs
             retention: 3650
     """
-    _id: str = Field(..., description="Template ID for inheritance matching")
-    path: str = Field(..., description="Mount point path (e.g., /opt/immune/storage)")
-    retention: int = Field(..., gt=0, description="Retention period in days")
+    model_config = ConfigDict(populate_by_name=True)
+    
+    id: str = Field(..., alias="_id", description="Template ID for inheritance matching")
+    path: str | None = Field(default=None, description="Mount point path (e.g., /opt/immune/storage)")
+    retention: int | str = Field(..., description="Retention period in days (or template variable)")
     
     # Optional fields for ordering
-    _after: str | None = Field(default=None, description="Insert after this _id")
-    _before: str | None = Field(default=None, description="Insert before this _id")
-    _position: int | None = Field(default=None, description="Absolute position (1-based)")
-    _first: bool = Field(default=False, description="Force first position")
-    _last: bool = Field(default=False, description="Force last position")
+    after: str | None = Field(default=None, alias="_after", description="Insert after this _id")
+    before: str | None = Field(default=None, alias="_before", description="Insert before this _id")
+    position: int | None = Field(default=None, alias="_position", description="Absolute position (1-based)")
+    first: bool = Field(default=False, alias="_first", description="Force first position")
+    last: bool = Field(default=False, alias="_last", description="Force last position")
 
 
 class Repo(BaseModel):
@@ -58,17 +60,19 @@ class Repo(BaseModel):
                 path: /opt/immune/storage-nfs
                 retention: 3650
     """
+    model_config = ConfigDict(populate_by_name=True)
+    
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     hiddenrepopath: list[HiddenRepoPath] = Field(default_factory=list)
     
     # Template internal fields
-    _id: str | None = Field(default=None, description="Template ID for repo matching")
-    _action: str | None = Field(default=None, description="Action: delete, etc.")
+    id: str | None = Field(default=None, alias="_id", description="Template ID for repo matching")
+    action: str | None = Field(default=None, alias="_action", description="Action: delete, etc.")
     
     def get_tier(self, tier_id: str) -> HiddenRepoPath | None:
         """Get a specific tier by _id."""
         for tier in self.hiddenrepopath:
-            if tier._id == tier_id:
+            if tier.id == tier_id:
                 return tier
         return None
     

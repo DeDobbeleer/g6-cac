@@ -145,7 +145,7 @@ class ResolutionEngine:
                 
                 # Convert Pydantic models to dicts for merging
                 resource_dicts = [
-                    r.model_dump(by_alias=True) if hasattr(r, "model_dump") else r
+                    r.model_dump(by_alias=True, exclude_none=True) if hasattr(r, "model_dump") else r
                     for r in resource_list
                 ]
                 

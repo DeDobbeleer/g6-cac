@@ -62,8 +62,8 @@ def deep_merge(base: dict, override: dict) -> dict:
     """Deep merge two dictionaries.
     
     For lists: match by _id, merge elements
-    For dicts: recursive merge
-    For primitives: override wins
+    For dicts: recursive merge  
+    For primitives: override wins (but None doesn't override)
     
     Internal fields (starting with _) are preserved but not merged recursively
     unless they are _id fields used for matching.
@@ -80,6 +80,10 @@ def deep_merge(base: dict, override: dict) -> dict:
     for key, override_val in override.items():
         # Skip internal metadata fields (except we need to keep them)
         # We'll filter them out at the end, not during merge
+        
+        # Skip None values - preserve base value
+        if override_val is None:
+            continue
         
         if key not in result:
             # New field - deep copy to avoid shared references
@@ -143,13 +147,13 @@ def merge_list_by_id(base_list: list, override_list: list) -> list:
         item_id = override_item.get("_id")
         action = override_item.get("_action")
         
-        # Handle ordering directives
+        # Handle ordering directives (only if value is not None)
         if item_id:
-            if "_after" in override_item:
+            if override_item.get("_after"):
                 ordering_directives.append((item_id, "_after", override_item["_after"]))
-            if "_before" in override_item:
+            if override_item.get("_before"):
                 ordering_directives.append((item_id, "_before", override_item["_before"]))
-            if "_position" in override_item:
+            if override_item.get("_position") is not None:
                 ordering_directives.append((item_id, "_position", override_item["_position"]))
             if override_item.get("_first"):
                 ordering_directives.append((item_id, "_first", True))
