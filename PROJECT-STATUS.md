@@ -2,7 +2,8 @@
 
 **Date**: 2026-02-27  
 **Status**: Phase 1 Complete → Phase 2 Ready  
-**Commit**: 55c4a45 (Validation system with name-based cross-references)
+**Commit**: c7b721e (Audit Steps 1.1-1.4 complete, all specs verified)
+**Tests**: 40 unit tests passing ✅
 
 ---
 
@@ -228,10 +229,13 @@ g6-cac/
 
 **Goal**: Stable, tested, ready for pilot
 
-1. **Unit Tests** (Priority: P0)
-   - All models
-   - Resolution algorithm
-   - Merge scenarios
+**Current Status**: 40 unit tests already passing ✅
+
+1. **Unit Tests** (Priority: P0) - 🚧 In Progress
+   - ✅ All models (Fleet, Template, Resources)
+   - ✅ Resolution algorithm
+   - ✅ Merge scenarios
+   - 🚧 Edge cases and error handling
 
 2. **Integration Tests** (Priority: P0)
    - Against test Director instance
@@ -299,32 +303,38 @@ g6-cac/
 
 ---
 
-## 🚀 Immediate Actions (Today)
+## 🚀 Immediate Actions (Next)
 
-1. **Review specs with Adriana** (if not done)
-   - Get sign-off on 20-TEMPLATE-HIERARCHY
-   - Clarify open questions
+1. **Start Phase 2: Director Integration**
+   - Implement Director Provider (`providers/director.py`)
+   - Create base Provider abstract class
+   - Implement name-to-ID resolution
 
-2. **Set up development environment**
-   - Python 3.10+
-   - Install dependencies from pyproject.toml
-   - Set up pre-commit hooks (ruff, mypy)
+2. **Implement Plan Command**
+   - Load declared state from YAML
+   - Fetch actual state from Director API
+   - Calculate diff (CREATE/UPDATE/DELETE)
 
-3. **Start Phase 1**
-   - Implement first Pydantic model (Fleet)
-   - Write first unit test
-   - Validate approach
+3. **Implement Apply Command**
+   - Execute plan with proper ordering
+   - Handle async operations and polling
+   - Name-to-ID translation during apply
 
 ---
 
-## 📞 Questions to Resolve
+## 📞 Questions Resolved ✅
 
-Before starting implementation:
+All major questions answered during Phase 1:
 
-1. **State Management**: File state (Terraform-style) or stateless (API-only)?
-2. **Processing Policy**: Are NP/EP truly optional? Default values?
-3. **Intra-level depth**: Limit to 1 level or allow chains?
-4. **DirSync Priority**: Migrate existing or focus on new deployments first?
+1. ✅ **State Management**: Stateless (API-only), no local state file
+2. ✅ **Processing Policy**: NP/EP optional, default to "None" in API
+3. ✅ **Intra-level depth**: Allow chains, 6 levels tested (Bank A)
+4. ✅ **DirSync Priority**: New deployments first, migration later
+
+**New Questions for Phase 2**:
+1. **Apply Strategy**: Create all then update, or sequential per resource type?
+2. **Error Handling**: Stop on first error or continue with rollback?
+3. **Async Timeout**: How long to poll for async operations?
 
 ---
 
