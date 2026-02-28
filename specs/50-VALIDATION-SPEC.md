@@ -1,65 +1,66 @@
-# Spécification des Validations CaC-ConfigMgr
+# CaC-ConfigMgr Validation Specification
 
 **Version**: 1.0  
 **Date**: 2026-02-27  
-**Statut**: Implementation Complete  
-**Fichier**: `specs/50-VALIDATION-SPEC.md`
+**Status**: Implementation Complete  
+**File**: `specs/50-VALIDATION-SPEC.md`
 
 ---
 
-## Table des matières
+## Table of Contents
 
-1. [Vue d'ensemble](#1-vue-densemble)
-2. [Architecture des validations](#2-architecture-des-validations)
+1. [Overview](#1-overview)
+2. [Validation Architecture](#2-validation-architecture)
 3. [Level 1: Syntax Validation](#3-level-1-syntax-validation)
 4. [Level 2: Template Resolution](#4-level-2-template-resolution)
 5. [Level 3: API Compliance](#5-level-3-api-compliance)
 6. [Level 4: Cross-Resource Dependencies](#6-level-4-cross-resource-dependencies)
-7. [Exit Codes et Output](#7-exit-codes-et-output)
-8. [Références externes](#8-références-externes)
-9. [Checklist d'audit](#9-checklist-daudit)
+7. [Exit Codes and Output](#7-exit-codes-and-output)
+8. [External References](#8-external-references)
+9. [Audit Checklist](#9-audit-checklist)
+10. [Known Issues and Warnings](#10-known-issues-and-warnings)
 
 ---
 
-## 1. Vue d'ensemble
+## 1. Overview
 
-### 1.1 Objectif
+### 1.1 Objective
 
-Ce document spécifie exhaustivement **toutes les validations** effectuées par CaC-ConfigMgr avant déploiement sur LogPoint Director.
+This document exhaustively specifies **all validations** performed by CaC-ConfigMgr before deployment to LogPoint Director.
 
-### 1.2 Prérequis pour validation
+### 1.2 Validation Prerequisites
 
-| Ressource | Requis pour | Format |
-|-----------|-------------|--------|
-| **Fichiers YAML** | Syntax, Resolution | `.yaml`, `.yml` |
-| **Topology Instance** | Full chain resolution | `instance.yaml` avec `extends` |
-| **Fleet** | API Compliance, Dependencies | `fleet.yaml` avec ressources |
-| **Templates** | Inheritance chain | Arborescence `templates/` |
-| **API Director** | External resources | Connexion (optionnel avec `--offline`) |
+| Resource | Required For | Format |
+|----------|--------------|--------|
+| **YAML Files** | Syntax, Resolution | `.yaml`, `.yml` |
+| **Topology Instance** | Full chain resolution | `instance.yaml` with `extends` |
+| **Fleet** | API Compliance, Dependencies | `fleet.yaml` with resources |
+| **Templates** | Inheritance chain | `templates/` directory tree |
+| **Director API** | External resources | Connection (optional with `--offline`) |
 
-### 1.3 4 niveaux de validation
+### 1.3 4 Validation Levels
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  NIVEAU 1: SYNTAX VALIDATION                                               │
+│  LEVEL 1: SYNTAX VALIDATION                                                │
 │  ├── YAML parsing                                                           │
 │  ├── Kind recognition (Fleet/Template/Instance)                            │
 │  └── Pydantic model loading                                                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  NIVEAU 2: TEMPLATE RESOLUTION                                             │
+│  LEVEL 2: TEMPLATE RESOLUTION                                              │
 │  ├── Inheritance chain building                                             │
 │  ├── Circular dependency detection                                         │
 │  ├── Template existence check                                              │
 │  ├── Deep merge with _id matching                                          │
 │  └── Variable interpolation (${var}, ${tpl.field})                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  NIVEAU 3: API COMPLIANCE (LogPoint Director)                              │
+│  LEVEL 3: API COMPLIANCE (LogPoint Director)                               │
 │  ├── Required fields validation                                            │
 │  ├── Type checking (str, int, list, bool)                                  │
 │  ├── Pattern matching (^[a-zA-Z0-9_-]+$)                                   │
 │  └── API-specific field names (name vs policy_name)                        │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  NIVEAU 4: CROSS-RESOURCE DEPENDENCIES                                     │
+│  LEVEL 4: CROSS-RESOURCE DEPENDENCIES                                      │
 │  ├── ProcessingPolicy → RoutingPolicy (by ID)                              │
 │  ├── ProcessingPolicy → NormalizationPolicy (by name)                      │
 │  ├── ProcessingPolicy → EnrichmentPolicy (by ID)                           │
@@ -70,39 +71,39 @@ Ce document spécifie exhaustivement **toutes les validations** effectuées par 
 
 ---
 
-## 2. Architecture des validations
+## 2. Validation Architecture
 
-### 2.1 Composants
+### 2.1 Components
 
 ```
 src/cac_configmgr/
 ├── cli/
-│   └── main.py                          # Orchestration des 4 niveaux
+│   └── main.py                          # Orchestrates all 4 levels
 │                                        # Exit codes: 0, 1, 2, 3
-│                                        # Output: Rich table ou JSON
+│                                        # Output: Rich table or JSON
 │
 ├── core/
 │   ├── api_validator.py                 # APIFieldValidator
-│   │   ├── API_SPECS: définitions des champs par ressource
+│   │   ├── API_SPECS: field definitions per resource
 │   │   ├── _validate_routing_policies()
 │   │   ├── _validate_processing_policies()
 │   │   ├── _validate_normalization_policies()
 │   │   ├── _validate_enrichment_policies()
 │   │   ├── _validate_repos()
-│   │   └── _validate_dependencies()     # Cross-refs avec index
+│   │   └── _validate_dependencies()     # Cross-refs with indexes
 │   │
 │   ├── validator.py                     # ConsistencyValidator
-│   │   └── Validation des références RP→Repo
+│   │   └── Validates RP→Repo references
 │   │
 │   ├── logpoint_dependencies.py         # LogPointDependencyValidator
-│   │   ├── DEPENDENCIES: graphe des dépendances
-│   │   ├── get_deployment_order()       # Ordre topologique
-│   │   └── Validation des contraintes DirSync
+│   │   ├── DEPENDENCIES: dependency graph
+│   │   ├── get_deployment_order()       # Topological order
+│   │   └── Validates DirSync constraints
 │   │
 │   ├── engine.py                        # ResolutionEngine
 │   │   ├── resolve()                    # Full resolution
 │   │   ├── resolve_fleet()              # Fleet only
-│   │   └── filter_internal_ids()        # Clean pour API
+│   │   └── filter_internal_ids()        # Clean for API
 │   │
 │   ├── resolver.py                      # TemplateResolver
 │   │   ├── resolve()                    # Build inheritance chain
@@ -127,7 +128,7 @@ src/cac_configmgr/
     └── repos.py                         # Repo, HiddenRepoPath
 ```
 
-### 2.2 Flux de validation
+### 2.2 Validation Flow
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
@@ -146,62 +147,62 @@ src/cac_configmgr/
 
 ## 3. Level 1: Syntax Validation
 
-### 3.1 Fichier: `cli/main.py` (lignes 50-90)
+### 3.1 File: `cli/main.py` (lines 50-90)
 
 #### 3.1.1 YAML Parsing
 
-**Test effectué**:
+**Test performed**:
 ```python
 yaml.safe_load(file)
 ```
 
-**Erreur générée**:
+**Error generated**:
 ```
 ❌ Syntax Errors (N):
   • {file}: mapping values are not allowed here
     in "<string>", line X, column Y
 ```
 
-**Prérequis**:
-- Fichier existe et est lisible
-- Contenu est du YAML valide
+**Prerequisites**:
+- File exists and is readable
+- Content is valid YAML
 
 #### 3.1.2 Kind Recognition
 
-**Kinds reconnus**:
-| Kind | Fichier source | Action |
-|------|----------------|--------|
+**Recognized kinds**:
+| Kind | Source File | Action |
+|------|-------------|--------|
 | `Fleet` | `fleet.yaml` | `load_fleet()` |
 | `ConfigTemplate` | `base.yaml`, `template.yaml` | `load_multi_file_template()` |
 | `TopologyInstance` | `instance.yaml` | `load_instance()` |
 
-**Warning si Unknown**:
+**Warning if Unknown**:
 ```
 ⚠ Unknown kind in {file}: {kind_detected}
 ```
 
 #### 3.1.3 Pydantic Model Loading
 
-**Modèles utilisés**:
+**Models used**:
 ```python
 from ..utils import load_yaml, load_instance, load_fleet, load_multi_file_template
 ```
 
-**Validation Pydantic inclut**:
-- Type des champs (str, int, list, bool)
-- Champs requis (Field(...))
-- Contraintes (min_length, pattern)
-- Alias (populate_by_name=True)
+**Pydantic validation includes**:
+- Field types (str, int, list, bool)
+- Required fields (Field(...))
+- Constraints (min_length, pattern)
+- Aliases (populate_by_name=True)
 
 ---
 
 ## 4. Level 2: Template Resolution
 
-### 4.1 Fichier: `core/engine.py`, `core/resolver.py`
+### 4.1 Files: `core/engine.py`, `core/resolver.py`
 
 ### 4.2 Inheritance Chain Building
 
-**Algorithme**:
+**Algorithm**:
 ```python
 def build_chain(instance):
     chain = [instance]
@@ -209,17 +210,17 @@ def build_chain(instance):
     
     while current.metadata.extends:
         parent = load_template(current.metadata.extends)
-        chain.insert(0, parent)  # Parent avant
+        chain.insert(0, parent)  # Parent first
         current = parent
     
     return chain
 ```
 
-**Profondeur maximale testée**: 6 niveaux (Bank A demo)
+**Maximum tested depth**: 6 levels (Bank A demo)
 
 ### 4.3 Circular Dependency Detection
 
-**Test effectué**:
+**Test performed**:
 ```python
 visited = set()
 current_path = []
@@ -237,7 +238,7 @@ def detect_circular(template):
     visited.add(template.id)
 ```
 
-**Erreur générée**:
+**Error generated**:
 ```
 CircularDependencyError: Circular template dependency detected:
   template-a → template-b → template-c → template-a
@@ -245,14 +246,14 @@ CircularDependencyError: Circular template dependency detected:
 
 ### 4.4 Template Existence Check
 
-**Test effectué**:
+**Test performed**:
 ```python
 parent_path = templates_dir / parent_ref / "template.yaml"
 if not parent_path.exists():
     raise TemplateNotFoundError(parent_ref, looked_in=parent_path)
 ```
 
-**Erreur générée**:
+**Error generated**:
 ```
 TemplateNotFoundError: Template not found: mssp/acme-corp/profiles/enterprise
   Looked in: templates/mssp/acme-corp/profiles/enterprise/template.yaml
@@ -260,18 +261,18 @@ TemplateNotFoundError: Template not found: mssp/acme-corp/profiles/enterprise
 
 ### 4.5 Deep Merge with _id Matching
 
-**Fichier**: `core/merger.py`
+**File**: `core/merger.py`
 
-**Règles de merge**:
+**Merge rules**:
 
-| Scénario | Action |
+| Scenario | Action |
 |----------|--------|
-| Dict simple | Deep merge récursif |
-| Liste avec `_id` | Merge by _id, nouveaux ajoutés |
-| Liste sans `_id` | Remplacement complet (child gagne) |
-| `_action: delete` | Suppression de l'élément |
+| Simple dict | Recursive deep merge |
+| List with `_id` | Merge by _id, new items added |
+| List without `_id` | Complete replacement (child wins) |
+| `_action: delete` | Element removal |
 
-**Algorithme**:
+**Algorithm**:
 ```python
 def merge_list_by_id(parent_list, child_list):
     result = []
@@ -279,19 +280,19 @@ def merge_list_by_id(parent_list, child_list):
     
     for child_item in child_list:
         if '_id' not in child_item:
-            result.append(child_item)  # Nouvel élément
+            result.append(child_item)  # New element
             continue
             
         parent_item = parent_by_id.get(child_item['_id'])
         if parent_item:
             if child_item.get('_action') == 'delete':
-                continue  # Suppression
+                continue  # Deletion
             merged = deep_merge(parent_item, child_item)
             result.append(merged)
         else:
-            result.append(child_item)  # Nouvel élément avec _id
+            result.append(child_item)  # New element with _id
     
-    # Ajouter éléments parent non modifiés
+    # Add unmodified parent elements
     child_ids = {item['_id'] for item in child_list if '_id' in item}
     for parent_item in parent_list:
         if '_id' in parent_item and parent_item['_id'] not in child_ids:
@@ -302,38 +303,38 @@ def merge_list_by_id(parent_list, child_list):
 
 ### 4.6 Ordering Directives
 
-**Directives supportées**:
+**Supported directives**:
 
-| Directive | Description | Exemple |
+| Directive | Description | Example |
 |-----------|-------------|---------|
-| `_after` | Insertion après un _id | `_after: base-config` |
-| `_before` | Insertion avant un _id | `_before: last-config` |
-| `_position` | Position absolue (1-based) | `_position: 1` |
-| `_first` | Forcer en premier | `_first: true` |
-| `_last` | Forcer en dernier | `_last: true` |
+| `_after` | Insert after an _id | `_after: base-config` |
+| `_before` | Insert before an _id | `_before: last-config` |
+| `_position` | Absolute position (1-based) | `_position: 1` |
+| `_first` | Force first position | `_first: true` |
+| `_last` | Force last position | `_last: true` |
 
 **Application**:
 ```python
 def apply_ordering_directives(resources):
-    # Trier par _position
-    # Appliquer _first/_after/_before/_last
-    # Détecter conflits
+    # Sort by _position
+    # Apply _first/_after/_before/_last
+    # Detect conflicts
     pass
 ```
 
 ### 4.7 Variable Interpolation
 
-**Fichier**: `core/interpolator.py`
+**File**: `core/interpolator.py`
 
-**Patterns supportés**:
+**Supported patterns**:
 
-| Pattern | Description | Exemple |
+| Pattern | Description | Example |
 |---------|-------------|---------|
-| `${var}` | Variable globale | `${retention_default}` |
-| `${tpl.field}` | Variable d'un template | `${mssp-base.tier_fast}` |
-| `${env.VAR}` | Variable d'environnement | `${env.LOGPOINT_TOKEN}` |
+| `${var}` | Global variable | `${retention_default}` |
+| `${tpl.field}` | Template variable | `${mssp-base.tier_fast}` |
+| `${env.VAR}` | Environment variable | `${env.LOGPOINT_TOKEN}` |
 
-**Algorithme**:
+**Algorithm**:
 ```python
 class Interpolator:
     def __init__(self, variables):
@@ -368,7 +369,7 @@ class Interpolator:
 
 ## 5. Level 3: API Compliance
 
-### 5.1 Fichier: `core/api_validator.py`
+### 5.1 File: `core/api_validator.py`
 
 ### 5.2 API Specifications
 
@@ -392,15 +393,15 @@ class Interpolator:
 }
 ```
 
-**Validations effectuées**:
+**Validations performed**:
 
-| # | Validation | Exemple valide | Exemple invalide |
-|---|------------|----------------|------------------|
-| 1 | `policy_name` requis | `rp-default` | (absent) |
+| # | Validation | Valid Example | Invalid Example |
+|---|------------|---------------|-----------------|
+| 1 | `policy_name` required | `rp-default` | (missing) |
 | 2 | Pattern match | `rp-default` | `rp default!` |
-| 3 | Type string | `"rp-name"` | `123` |
-| 4 | `catch_all` requis | `"repo-default"` | (absent) |
-| 5 | `catch_all` string | `"repo-default"` | `null` |
+| 3 | String type | `"rp-name"` | `123` |
+| 4 | `catch_all` required | `"repo-default"` | (missing) |
+| 5 | `catch_all` string | `"repo-default" | `null` |
 | 6 | `routing_criteria` list | `[{...}]` | `"invalid"` |
 
 #### 5.2.2 Processing Policy
@@ -418,27 +419,27 @@ class Interpolator:
     },
     "normalization_policy": {
         "type": str,
-        "required": False  # Optionnel
+        "required": False  # Optional
     },
     "enrichment_policy": {
         "type": str,
-        "required": False  # Optionnel
+        "required": False  # Optional
     }
 }
 ```
 
-**Validations effectuées**:
+**Validations performed**:
 
-| # | Validation | Exemple valide | Exemple invalide |
-|---|------------|----------------|------------------|
-| 1 | `policy_name` requis | `pp-default` | (absent) |
+| # | Validation | Valid Example | Invalid Example |
+|---|------------|---------------|-----------------|
+| 1 | `policy_name` required | `pp-default` | (missing) |
 | 2 | Pattern match | `pp-default` | `pp@invalid` |
-| 3 | `routing_policy` requis | `"586cc3ed..."` | (absent) |
-| 4 | Type string | `"586cc3ed..."` | `123` |
-| 5 | `normalization_policy` null autorisé | `null` → `"None"` | - |
-| 6 | `enrichment_policy` null autorisé | `null` → `"None"` | - |
+| 3 | `routing_policy` required | `"586cc3ed..."` | (missing) |
+| 4 | String type | `"586cc3ed..."` | `123` |
+| 5 | `normalization_policy` null allowed | `null` → `"None"` | - |
+| 6 | `enrichment_policy` null allowed | `null` → `"None"` | - |
 
-**IMPORTANT**: La valeur `null` est acceptée pour les champs optionnels et sera convertie en string `"None"` lors de l'envoi à l'API Director.
+**IMPORTANT**: `null` value is accepted for optional fields and will be converted to string `"None"` when sending to Director API.
 
 #### 5.2.3 Normalization Policy
 
@@ -460,7 +461,7 @@ class Interpolator:
 }
 ```
 
-**Note spéciale**: L'API Director utilise `name` pour NormalizationPolicy, PAS `policy_name` (contrairement à PP, RP, EP).
+**Special note**: Director API uses `name` for NormalizationPolicy, NOT `policy_name` (unlike PP, RP, EP).
 
 #### 5.2.4 Enrichment Policy
 
@@ -524,9 +525,9 @@ class Interpolator:
 }
 ```
 
-### 5.3 Logique de validation
+### 5.3 Validation Logic
 
-**Code source** (`api_validator.py`):
+**Source code** (`api_validator.py`):
 
 ```python
 def _validate_resource_type(self, resources, spec_name, resource_type):
@@ -551,7 +552,7 @@ def _validate_resource_type(self, resources, spec_name, resource_type):
                 
                 # 2. Allow None for optional fields
                 if value is None and not config.get("required", False):
-                    continue  # Sera converti en "None" pour l'API
+                    continue  # Will be converted to "None" for API
                 
                 # 3. Type checking
                 expected_type = config["type"]
@@ -572,7 +573,7 @@ def _validate_resource_type(self, resources, spec_name, resource_type):
 
 ## 6. Level 4: Cross-Resource Dependencies
 
-### 6.1 Graphe de dépendances
+### 6.1 Dependency Graph
 
 ```
                            Repos
@@ -598,15 +599,15 @@ def _validate_resource_type(self, resources, spec_name, resource_type):
                  Syslog Collectors (future)
 ```
 
-### 6.2 Indexation pour validation rapide
+### 6.2 Indexing for Fast Validation
 
-**Construction des indexes** (`api_validator.py`):
+**Index construction** (`api_validator.py`):
 
 ```python
 def _build_indexes(self) -> dict[str, set[str]]:
     indexes = {}
     
-    # Index par nom (pour lookup par nom)
+    # Index by name (for name lookup)
     name_fields = {
         "repos": "name",
         "routing_policies": "policy_name",
@@ -622,7 +623,7 @@ def _build_indexes(self) -> dict[str, set[str]]:
             if item.get(name_field)
         }
     
-    # Index par ID (pour les références ID)
+    # Index by ID (for ID references)
     indexes["routing_policies_by_id"] = {
         item.get("id") or item.get("_id")
         for item in self.resources.get("routing_policies", [])
@@ -636,7 +637,7 @@ def _build_indexes(self) -> dict[str, set[str]]:
     return indexes
 ```
 
-### 6.3 Validations de références
+### 6.3 Reference Validations
 
 #### 6.3.1 ProcessingPolicy → RoutingPolicy (by ID)
 
@@ -714,11 +715,11 @@ for criterion in rp.get("routing_criteria", []):
         ))
 ```
 
-### 6.4 Ordre de déploiement
+### 6.4 Deployment Order
 
-**Fichier**: `core/logpoint_dependencies.py`
+**File**: `core/logpoint_dependencies.py`
 
-**Graphe de dépendances**:
+**Dependency graph**:
 
 ```python
 DEPENDENCIES = {
@@ -735,7 +736,7 @@ DEPENDENCIES = {
 }
 ```
 
-**Ordre topologique calculé**:
+**Calculated topological order**:
 
 ```python
 def get_deployment_order(self) -> list[str]:
@@ -758,18 +759,18 @@ def get_deployment_order(self) -> list[str]:
 
 ---
 
-## 7. Exit Codes et Output
+## 7. Exit Codes and Output
 
 ### 7.1 Exit Codes (40-CLI-WORKFLOW.md)
 
-| Code | Signification | Condition |
-|------|---------------|-----------|
+| Code | Meaning | Condition |
+|------|---------|-----------|
 | 0 | Validation successful, no warnings | `errors == 0 AND warnings == 0` |
 | 1 | Validation successful, warnings present | `errors == 0 AND warnings > 0` |
 | 2 | Validation errors | `errors > 0` |
-| 3 | System/connection error | Exception non gérée |
+| 3 | System/connection error | Unhandled exception |
 
-### 7.2 Format Texte (défaut)
+### 7.2 Text Format (default)
 
 ```
 Validating demo-configs/instances/banks/bank-a/prod...
@@ -798,7 +799,7 @@ Validating dependencies...
 ✓ All validations passed!
 ```
 
-### 7.3 Format JSON (`--json`)
+### 7.3 JSON Format (`--json`)
 
 ```json
 {
@@ -814,7 +815,7 @@ Validating dependencies...
 }
 ```
 
-### 7.4 Format avec erreurs
+### 7.4 Format with Errors
 
 ```
 ❌ Validation Errors (3):
@@ -829,22 +830,22 @@ routing_policies:
 
 ---
 
-## 8. Références externes
+## 8. External References
 
-### 8.1 Documents liés
+### 8.1 Related Documents
 
-| Document | Description | Lien |
+| Document | Description | Link |
 |----------|-------------|------|
-| 40-CLI-WORKFLOW.md | Spécification CLI | [40-CLI-WORKFLOW.md](./40-CLI-WORKFLOW.md) |
-| 30-PROCESSING-POLICIES.md | Spécification Processing Policy | [30-PROCESSING-POLICIES.md](./30-PROCESSING-POLICIES.md) |
-| 20-TEMPLATE-HIERARCHY.md | Spécification Templates | [20-TEMPLATE-HIERARCHY.md](./20-TEMPLATE-HIERARCHY.md) |
-| API-REFERENCE.md | Référence API Director | [API-REFERENCE.md](./API-REFERENCE.md) |
+| 40-CLI-WORKFLOW.md | CLI Specification | [40-CLI-WORKFLOW.md](./40-CLI-WORKFLOW.md) |
+| 30-PROCESSING-POLICIES.md | Processing Policy Spec | [30-PROCESSING-POLICIES.md](./30-PROCESSING-POLICIES.md) |
+| 20-TEMPLATE-HIERARCHY.md | Template Spec | [20-TEMPLATE-HIERARCHY.md](./20-TEMPLATE-HIERARCHY.md) |
+| API-REFERENCE.md | Director API Reference | [API-REFERENCE.md](./API-REFERENCE.md) |
 | ADRS.md | Architecture Decisions | [ADRS.md](../ADRS.md) |
 
-### 8.2 Ressources LogPoint Director
+### 8.2 LogPoint Director Resources
 
-| Ressource | API Endpoint | Doc externe |
-|-----------|--------------|-------------|
+| Resource | API Endpoint | External Doc |
+|----------|--------------|--------------|
 | Routing Policies | `/routingpolicies` | https://docs.logpoint.com/director/apis/routingpolicies |
 | Processing Policies | `/processingpolicy` | https://docs.logpoint.com/director/apis/processingpolicy |
 | Normalization Policies | `/normalizationpolicy` | https://docs.logpoint.com/director/apis/normalizationpolicy |
@@ -852,85 +853,85 @@ routing_policies:
 
 ---
 
-## 9. Checklist d'audit
+## 9. Audit Checklist
 
-### 9.1 Pré-audit
+### 9.1 Pre-Audit
 
-- [ ] Les fichiers YAML sont-ils bien formés ?
-- [ ] Les `kind` sont-ils reconnus ?
-- [ ] Les modèles Pydantic chargent-ils sans erreur ?
+- [ ] Are YAML files well-formed?
+- [ ] Are `kind` values recognized?
+- [ ] Do Pydantic models load without error?
 
-### 9.2 Audit Template
+### 9.2 Template Audit
 
-- [ ] La chaîne d'héritage se résout-elle ?
-- [ ] Y a-t-il des dépendances circulaires ?
-- [ ] Tous les templates parents existent-ils ?
-- [ ] Le merge des ressources est-il correct ?
-- [ ] Les variables sont-elles interpolées ?
+- [ ] Does the inheritance chain resolve?
+- [ ] Are there circular dependencies?
+- [ ] Do all parent templates exist?
+- [ ] Is resource merging correct?
+- [ ] Are variables interpolated?
 
-### 9.3 Audit API Compliance
+### 9.3 API Compliance Audit
 
-- [ ] Tous les champs requis sont-ils présents ?
-- [ ] Les types correspondent-ils aux specs ?
-- [ ] Les patterns sont-ils respectés (`^[a-zA-Z0-9_-]+$`) ?
-- [ ] Les champs API utilisent-ils les bons noms ?
-  - [ ] NP: `name` (pas `policy_name`)
+- [ ] Are all required fields present?
+- [ ] Do types match specs?
+- [ ] Are patterns respected (`^[a-zA-Z0-9_-]+$`)?
+- [ ] Are API field names correct?
+  - [ ] NP: `name` (not `policy_name`)
   - [ ] PP/RP/EP: `policy_name`
-- [ ] Les valeurs `null` optionnelles sont-elles acceptées ?
+- [ ] Are optional `null` values accepted?
 
-### 9.4 Audit Cross-Resource
+### 9.4 Cross-Resource Audit
 
-- [ ] Chaque `routing_policy` (PP) existe-t-il (par ID) ?
-- [ ] Chaque `normalization_policy` (PP) existe-t-il (par nom) ?
-- [ ] Chaque `enrichment_policy` (PP) existe-t-il (par ID) ?
-- [ ] Chaque `catch_all` (RP) existe-t-il (par nom) ?
-- [ ] Chaque `criteria[].repo` (RP) existe-t-il (par nom) ?
+- [ ] Does each `routing_policy` (PP) exist (by ID)?
+- [ ] Does each `normalization_policy` (PP) exist (by name)?
+- [ ] Does each `enrichment_policy` (PP) exist (by ID)?
+- [ ] Does each `catch_all` (RP) exist (by name)?
+- [ ] Does each `criteria[].repo` (RP) exist (by name)?
 
-### 9.5 Post-audit
+### 9.5 Post-Audit
 
-- [ ] L'ordre de déploiement est-il calculable ?
-- [ ] Les exit codes sont-ils respectés ?
-- [ ] Le output est-il conforme (texte/JSON) ?
+- [ ] Is deployment order calculable?
+- [ ] Are exit codes respected?
+- [ ] Is output format compliant (text/JSON)?
 
 ---
 
-## 10. Points de vigilance / Problèmes connus
+## 10. Known Issues and Warnings
 
-### 10.1 Différences de nommage API
+### 10.1 API Naming Differences
 
-**IMPORTANT**: Les noms de champs varient selon les ressources :
+**IMPORTANT**: Field names vary by resource:
 
-| Ressource | Champ nom | Exemple |
-|-----------|-----------|---------|
+| Resource | Name Field | Example |
+|----------|------------|---------|
 | RoutingPolicy | `policy_name` | `rp-default` |
 | ProcessingPolicy | `policy_name` | `pp-default` |
 | EnrichmentPolicy | `policy_name` | `ep-threatintel` |
-| **NormalizationPolicy** | **`name`** (⚠️ pas `policy_name`) | `_logpoint` |
+| **NormalizationPolicy** | **`name`** (⚠️ not `policy_name`) | `_logpoint` |
 
-### 10.2 Références par ID vs par nom
+### 10.2 References by ID vs by Name
 
-| Référence | Type | Exemple |
+| Reference | Type | Example |
 |-----------|------|---------|
 | ProcessingPolicy → RoutingPolicy | **ID** | `"586cc3ed..."` |
-| ProcessingPolicy → NormalizationPolicy | **Nom** | `"_logpoint"` |
+| ProcessingPolicy → NormalizationPolicy | **Name** | `"_logpoint"` |
 | ProcessingPolicy → EnrichmentPolicy | **ID** | `"57591a2c..."` |
-| RoutingPolicy → Repo | **Nom** | `"repo-default"` |
+| RoutingPolicy → Repo | **Name** | `"repo-default"` |
 
-### 10.3 Valeurs "None"
+### 10.3 "None" Values
 
-Pour les champs optionnels de ProcessingPolicy:
-- YAML: `normalization_policy: null` ou absent
-- API Director: converti en `"None"` (string)
-- Validation: `null` est accepté pour champs optionnels
-
----
-
-## Historique des modifications
-
-| Date | Version | Changement | Auteur |
-|------|---------|------------|--------|
-| 2026-02-27 | 1.0 | Création initiale | CaC-ConfigMgr Team |
+For ProcessingPolicy optional fields:
+- YAML: `normalization_policy: null` or absent
+- Director API: converted to `"None"` (string)
+- Validation: `null` is accepted for optional fields
 
 ---
 
-**FIN DU DOCUMENT**
+## Change History
+
+| Date | Version | Change | Author |
+|------|---------|--------|--------|
+| 2026-02-27 | 1.0 | Initial creation | CaC-ConfigMgr Team |
+
+---
+
+**END OF DOCUMENT**
