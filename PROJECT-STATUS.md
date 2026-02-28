@@ -18,6 +18,7 @@
 | **Templates** | 20-TEMPLATE-HIERARCHY.md | ✅ 2,072 lines - **Core spec** |
 | **Processing** | 30-PROCESSING-POLICIES.md | ✅ 241 lines - Glue resource PP |
 | **CLI** | 40-CLI-WORKFLOW.md | ✅ 613 lines - Complete workflow |
+| **Validation** | 50-VALIDATION-SPEC.md | ✅ 936 lines - Full validation spec |
 | **Roadmap** | 99-ROADMAP.md | ✅ 94 lines - Decisions tracker |
 | **ADRs** | ADRS.md | ✅ 7 ADRs - Architecture decisions |
 | **Coding Standards** | docs/CODING-STANDARDS.md | ✅ 175 lines |
@@ -107,10 +108,11 @@ g6-cac/
 
 | Component | Status | Priority | Effort |
 |-----------|--------|----------|--------|
-| **Pydantic Models** | ❌ Not started | P0 | Medium |
-| **Template Resolution** | ❌ Not started | P0 | High |
+| **Pydantic Models** | ✅ Implemented | P0 | Medium |
+| **Template Resolution** | ✅ Implemented | P0 | High |
+| **API Validation** | ✅ Implemented | P0 | Medium |
+| **Validate Command** | ✅ Implemented | P0 | Medium |
 | **Director Provider** | ❌ Not started | P0 | High |
-| **Validate Command** | ❌ Not started | P0 | Medium |
 
 ### Important (MVP Complete)
 
@@ -134,48 +136,33 @@ g6-cac/
 
 ## 📋 Next Steps Plan
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation ✅ COMPLETE
 
 **Goal**: Core models and validation working
 
-1. **Implement Pydantic Models** (Priority: P0)
-   ```
-   src/cac_configmgr/models/
-   ├── fleet.py          # Fleet, Node, Tags
-   ├── template.py       # ConfigTemplate, Metadata
-   ├── repos.py          # Repo, HiddenRepoPath
-   ├── routing.py        # RoutingPolicy, RoutingCriteria
-   ├── normalization.py  # NormalizationPolicy
-   ├── processing.py     # ProcessingPolicy
-   └── common.py         # Shared types, validators
-   ```
-   - All models from 20-TEMPLATE-HIERARCHY
+**Status**: All components implemented and tested
+
+1. **✅ Pydantic Models** (`src/cac_configmgr/models/`)
+   - fleet.py, template.py, repos.py, routing.py, normalization.py, processing.py, enrichment.py
+   - All models from 20-TEMPLATE-HIERARCHY.md
    - Validation rules (name patterns, required fields)
-   - Serializers (YAML ↔ Python ↔ JSON)
+   - API-compliant serialization (aliases, field names)
 
-2. **Implement Core Resolution** (Priority: P0)
-   ```
-   src/cac_configmgr/core/
-   ├── resolver.py       # Build inheritance chain
-   ├── merger.py         # Deep merge with _id matching
-   ├── ordering.py       # List ordering (_after, _position)
-   └── interpolator.py   # Variable substitution
-   ```
-   - Algorithm from Section 5 of specs
-   - Unit tests for all merge scenarios
+2. **✅ Core Resolution** (`src/cac_configmgr/core/`)
+   - resolver.py: Build inheritance chain (6 levels)
+   - merger.py: Deep merge with _id matching
+   - interpolator.py: Variable substitution
+   - validator.py: Cross-resource consistency
+   - api_validator.py: API Director compliance
+   - logpoint_dependencies.py: Deployment order
 
-3. **Validate Command** (Priority: P0)
-   ```
-   src/cac_configmgr/cli/
-   ├── main.py           # Entry point
-   └── validate.py       # Validation logic
-   ```
-   - Load YAML files
-   - Validate against Pydantic models
-   - Check references (repos exist, etc.)
-   - Output: Table or JSON
+3. **✅ Validate Command** (`src/cac_configmgr/cli/main.py`)
+   - 4-level validation: Syntax → References → API Compliance → Dependencies
+   - Options: --fleet, --topology, --api-compliance, --offline, --verbose, --json
+   - Exit codes: 0=OK, 1=warnings, 2=errors
+   - Demo configs: Bank A (27 resources), Bank B (22 resources) - All pass
 
-**Deliverable**: `cac-configmgr validate ./configs/` works
+**Deliverable**: `cac-configmgr validate ./demo-configs/` works ✅
 
 ---
 
