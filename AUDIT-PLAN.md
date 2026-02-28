@@ -1,82 +1,82 @@
-# Plan d'Audit : Documentation vs Code
+# Audit Plan: Documentation vs Code Verification
 
-**Date de création :** 2026-02-27  
-**Branche :** `testing/audit`  
-**Statut :** 🚧 En cours
-
----
-
-## Objectif
-
-Vérifier la cohérence entre :
-- Les spécifications techniques (`specs/*.md`)
-- Le code implémenté (`src/`)
-- L'état d'avancement documenté (`PROJECT-STATUS.md`)
-- Les décisions d'architecture (`ADRS.md`)
+**Created:** 2026-02-27  
+**Branch:** `testing/audit`  
+**Status:** 🚧 In Progress
 
 ---
 
-## État d'Avancement de l'Audit
+## Objective
 
-| Étape | Description | Statut | Résultat |
-|-------|-------------|--------|----------|
-| 0 | Création du plan d'audit | ✅ Complété | Ce fichier |
-| 1 | Vérification specs techniques | ⏳ En attente | - |
-| 2 | Vérification état d'avancement | ⏳ En attente | - |
-| 3 | Vérification ADRs | ⏳ En attente | - |
-| 4 | Vérification autres MD | ⏳ En attente | - |
-| 5 | Synchronisation Code ↔ Specs | ⏳ En attente | - |
-| 6 | Rapport final et actions | ⏳ En attente | - |
+Verify consistency between:
+- Technical specifications (`specs/*.md`)
+- Implemented code (`src/`)
+- Project status (`PROJECT-STATUS.md`)
+- Architecture decisions (`ADRS.md`)
 
 ---
 
-## Étape 1 : Spécifications Techniques (`specs/*.md`)
+## Audit Progress Status
+
+| Step | Description | Status | Result |
+|------|-------------|--------|--------|
+| 0 | Create audit plan | ✅ Completed | This file |
+| 1 | Verify technical specs | ⏳ Pending | - |
+| 2 | Verify project status | ⏳ Pending | - |
+| 3 | Verify ADRs | ⏳ Pending | - |
+| 4 | Verify other MD files | ⏳ Pending | - |
+| 5 | Code ↔ Specs sync | ⏳ Pending | - |
+| 6 | Final report & actions | ⏳ Pending | - |
+
+---
+
+## Step 1: Technical Specifications (`specs/*.md`)
 
 ### 1.1 20-TEMPLATE-HIERARCHY.md
-**À vérifier :**
-- [ ] Structure des modèles (NP/EP/PP) correspond au code
-- [ ] Champs documentés existent dans les modèles Pydantic
-- [ ] Alias (`routingPolicy`, `normalizationPackages`) cohérents
-- [ ] Héritage et merging documentés = implémentation
+**To verify:**
+- [ ] Model structures (NP/EP/PP) match code
+- [ ] Documented fields exist in Pydantic models
+- [ ] Aliases (`routingPolicy`, `normalizationPackages`) consistent
+- [ ] Inheritance and merging logic matches implementation
 
-**Red flags potentiels :**
-- Spéc décrit des champs qui n'existent pas
-- Structure différente entre spec et code
-- Exemples YAML dans spec ne fonctionnent pas
+**Potential red flags:**
+- Spec describes fields that don't exist
+- Different structure between spec and code
+- YAML examples in spec don't work
 
 ### 1.2 30-PROCESSING-POLICIES.md
-**À vérifier :**
-- [ ] Structure `normalization_packages` documentée
-- [ ] Structure `specifications` (EP) documentée
-- [ ] Champs optionnels (`enrichmentPolicy`) marqués comme tel
-- [ ] Références entre PP → RP → NP/EP documentées
+**To verify:**
+- [ ] `normalization_packages` structure documented
+- [ ] `specifications` (EP) structure documented
+- [ ] Optional fields (`enrichmentPolicy`) marked as such
+- [ ] References PP → RP → NP/EP documented
 
 ### 1.3 40-CLI-WORKFLOW.md
-**À vérifier :**
-- [ ] Commandes `validate`, `plan`, `generate-demo` documentées
-- [ ] Options des commandes correspondent au code
-- [ ] Exit codes et erreurs documentés
+**To verify:**
+- [ ] Commands `validate`, `plan`, `generate-demo` documented
+- [ ] Command options match code
+- [ ] Exit codes and errors documented
 
 ### 1.4 10-INVENTORY-FLEET.md
-**À vérifier :**
-- [ ] Modèle Fleet avec tags
-- [ ] Structure des nœuds (DataNode, SearchHead, AIO)
-- [ ] Tags et clusters documentés
+**To verify:**
+- [ ] Fleet model with tags
+- [ ] Node structure (DataNode, SearchHead, AIO)
+- [ ] Tags and clusters documented
 
 ---
 
-## Étape 2 : État d'Avancement (`PROJECT-STATUS.md`)
+## Step 2: Project Status (`PROJECT-STATUS.md`)
 
 ### 2.1 Phase 1 (MVP)
-**À vérifier :**
-- [ ] Ce qui est marqué "✅ Done" l'est vraiment
-- [ ] Features "🚧 In Progress" sont en cours
-- [ ] Ressources P0/P1/P2 correspondent au code
+**To verify:**
+- [ ] Items marked "✅ Done" are actually done
+- [ ] "🚧 In Progress" features are in progress
+- [ ] P0/P1/P2 resources match code
 
-### 2.2 Ressources Implémentées
-**Mapping code vs status :**
-| Ressource | Code | Status.md | Cohérent ? |
-|-----------|------|-----------|------------|
+### 2.2 Implemented Resources
+**Code vs Status mapping:**
+| Resource | Code | Status.md | Consistent? |
+|----------|------|-----------|-------------|
 | Repos | ✅ | ? | - |
 | Routing Policies | ✅ | ? | - |
 | Processing Policies | ✅ | ? | - |
@@ -87,63 +87,63 @@ Vérifier la cohérence entre :
 
 ---
 
-## Étape 3 : Architecture Decision Records (`ADRS.md`)
+## Step 3: Architecture Decision Records (`ADRS.md`)
 
-### 3.1 ADR-001 : Python
-**À vérifier :**
-- [ ] Toujours d'actualité
-- [ ] Version Python correcte
+### 3.1 ADR-001: Python
+**To verify:**
+- [ ] Still current
+- [ ] Correct Python version
 
-### 3.2 ADR-002 : Template ID avec `_id`
-**À vérifier :**
-- [ ] Implémenté dans tous les modèles
-- [ ] Logique de matching par `_id` fonctionne
+### 3.2 ADR-002: Template ID with `_id`
+**To verify:**
+- [ ] Implemented in all models
+- [ ] `_id` matching logic works
 
-### 3.3 ADR-003 : Héritage Multi-niveaux
-**À vérifier :**
-- [ ] 4 niveaux documentés = implémentés
-- [ ] Intra-level et Cross-level fonctionnent
+### 3.3 ADR-003: Multi-level Inheritance
+**To verify:**
+- [ ] 4 documented levels = implemented
+- [ ] Intra-level and Cross-level work
 
-### 3.4 ADRs Manquants
-**Potentiellement à ajouter :**
-- [ ] Structure NP/EP (packages vs single ref)
-- [ ] Validation des dépendances
-- [ ] Gestion des champs `None` → `"None"`
+### 3.4 Missing ADRs
+**Potentially to add:**
+- [ ] NP/EP structure (packages vs single ref)
+- [ ] Dependency validation
+- [ ] `None` → `"None"` handling
 
 ---
 
-## Étape 4 : Autres Fichiers Markdown
+## Step 4: Other Markdown Files
 
 ### 4.1 README.md
-**À vérifier :**
-- [ ] Accurate par rapport au projet
-- [ ] Commandes d'installation fonctionnent
-- [ ] Badges et liens valides
+**To verify:**
+- [ ] Accurate for current project
+- [ ] Installation commands work
+- [ ] Badges and links valid
 
 ### 4.2 AGENTS.md
-**À vérifier :**
-- [ ] Informations pour devs correctes
-- [ ] Structure projet à jour
-- [ ] Commandes de build valides
+**To verify:**
+- [ ] Developer info correct
+- [ ] Project structure up to date
+- [ ] Build commands valid
 
 ### 4.3 DEMO-SCRIPT.md
-**À vérifier :**
-- [ ] Correspond à la démo réelle
-- [ ] Commandes copiables/coller
-- [ ] Timing réaliste
+**To verify:**
+- [ ] Matches actual demo
+- [ ] Commands copy-pasteable
+- [ ] Realistic timing
 
 ### 4.4 CLEANUP-MIGRATION.md
-**À vérifier :**
-- [ ] Encore pertinent ou obsolète
-- [ ] Actions de cleanup réalisées
+**To verify:**
+- [ ] Still relevant or obsolete
+- [ ] Cleanup actions done
 
 ---
 
-## Étape 5 : Synchronisation Code ↔ Specs
+## Step 5: Code ↔ Specs Synchronization
 
-### 5.1 Modèles Pydantic vs Specs
-| Modèle | Fichier | Champs Code | Champs Spec | Cohérent ? |
-|--------|---------|-------------|-------------|------------|
+### 5.1 Pydantic Models vs Specs
+| Model | File | Code Fields | Spec Fields | Consistent? |
+|-------|------|-------------|-------------|-------------|
 | Repo | repos.py | ? | ? | - |
 | RoutingPolicy | routing.py | ? | ? | - |
 | ProcessingPolicy | processing.py | ? | ? | - |
@@ -151,37 +151,37 @@ Vérifier la cohérence entre :
 | EnrichmentPolicy | enrichment.py | ? | ? | - |
 | Fleet | fleet.py | ? | ? | - |
 
-### 5.2 Alias et Sérialisation
-**À vérifier :**
-- [ ] `by_alias=True/False` cohérent avec specs
-- [ ] Champs internes (`_id`, `_action`) filtrés correctement
-- [ ] Payload API = format attendu par DirSync
+### 5.2 Aliases and Serialization
+**To verify:**
+- [ ] `by_alias=True/False` consistent with specs
+- [ ] Internal fields (`_id`, `_action`) filtered correctly
+- [ ] API payload = expected DirSync format
 
 ---
 
-## Étape 6 : Rapport Final
+## Step 6: Final Report
 
-### 6.1 Incohérences Trouvées
-*À remplir après les étapes 1-5*
+### 6.1 Inconsistencies Found
+*To fill after steps 1-5*
 
-### 6.2 Actions Correctives
-*À remplir après les étapes 1-5*
+### 6.2 Corrective Actions
+*To fill after steps 1-5*
 
-### 6.3 Fichiers à Mettre à Jour
-*À remplir après les étapes 1-5*
+### 6.3 Files to Update
+*To fill after steps 1-5*
 
 ---
 
-## Checklist Finale
+## Final Checklist
 
-- [ ] Tous les specs sont à jour avec le code
-- [ ] PROJECT-STATUS.md reflète l'état réel
-- [ ] ADRs couvrent toutes les décisions importantes
-- [ ] README.md est accurate
-- [ ] DémOSCRIPT.md correspond à la réalité
+- [ ] All specs up to date with code
+- [ ] PROJECT-STATUS.md reflects real state
+- [ ] ADRs cover all major decisions
+- [ ] README.md is accurate
+- [ ] DEMO-SCRIPT.md matches reality
 
 ---
 
 ## Notes
 
-*Ajouter ici les notes pendant l'audit*
+*Add notes here during audit*
