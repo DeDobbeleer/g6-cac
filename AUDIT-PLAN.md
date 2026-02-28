@@ -1,8 +1,9 @@
 # Audit Plan: Documentation vs Code Verification
 
 **Created:** 2026-02-27  
+**Updated:** 2026-02-27  
 **Branch:** `testing/audit`  
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress (Steps 1.1-1.3 Complete)
 
 ---
 
@@ -23,7 +24,7 @@ Verify consistency between:
 | 0 | Create audit plan | ✅ Completed | This file |
 | 1.1 | Verify 20-TEMPLATE-HIERARCHY.md | ✅ Completed | Fixed NP field name |
 | 1.2 | Verify 30-PROCESSING-POLICIES.md | ✅ Completed | Fixed PP field name |
-| 1.3 | Verify 40-CLI-WORKFLOW.md | ⏳ Pending | - |
+| 1.3 | Verify 40-CLI-WORKFLOW.md | ✅ Completed | Section 5.6 added for name-to-ID resolution |
 | 1.4 | Verify 10-INVENTORY-FLEET.md | ⏳ Pending | - |
 | 2 | Verify project status | ⏳ Pending | - |
 | 3 | Verify ADRs | ⏳ Pending | - |
@@ -111,10 +112,44 @@ Document uses `name` field (line 45, 62) but API Director requires `policy_name`
 - `specs/30-PROCESSING-POLICIES.md` - Update field names and examples
 
 ### 1.3 40-CLI-WORKFLOW.md
-**To verify:**
-- [ ] Commands `validate`, `plan`, `generate-demo` documented
-- [ ] Command options match code
-- [ ] Exit codes and errors documented
+**Status:** ✅ **COMPLETED - VERIFIED AND ENHANCED**
+
+**Verified:**
+- [x] Commands `validate`, `plan`, `apply`, `generate-demo` documented
+- [x] Command options match code (`--fleet`, `--topology`, `--json`, `--verbose`)
+- [x] Exit codes documented (0=OK, 1=warnings, 2=errors)
+- [x] 4-level validation process documented
+
+**Enhancements Made:**
+
+**Section 5.6 Added**: "Name-to-ID Resolution (Apply Phase)"
+
+Documented the critical concept that:
+- Validation phase uses **names** (offline, no API calls)
+- Apply phase requires **name-to-ID translation** via API lookups
+- References validated by name in YAML templates
+- IDs only known after resources created in Director
+
+**Documentation includes:**
+- Resolution process diagram (ASCII)
+- Reference mapping table (Template → API Payload)
+- Resolution order (dependencies first)
+- Handling new resources (extract ID from POST response)
+- Validation vs Apply difference table
+
+**Key Concept Documented:**
+```
+Template (Validation):    API Payload (Apply):
+routing_policy:            routing_policy:
+  "rp-default"      →       "586cc3ed..."  (ID lookup)
+```
+
+**Files Modified:**
+- `specs/40-CLI-WORKFLOW.md` - Added section 5.6 (92 lines)
+
+**Cross-References:**
+- Links to `50-VALIDATION-SPEC.md` section 1.4 (Offline vs Apply)
+- Links to `50-VALIDATION-SPEC.md` section 6.5 (Name-to-ID translation)
 
 ### 1.4 10-INVENTORY-FLEET.md
 **To verify:**
