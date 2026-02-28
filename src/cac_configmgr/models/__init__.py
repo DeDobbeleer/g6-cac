@@ -50,6 +50,8 @@ from .normalization import (
 from .enrichment import (
     EnrichmentPolicy,
     EnrichmentSpecification,
+    EnrichmentCriterion,
+    EnrichmentRule,
 )
 
 __all__ = [
@@ -85,4 +87,6 @@ __all__ = [
     # Enrichment
     "EnrichmentPolicy",
     "EnrichmentSpecification",
+    "EnrichmentCriterion",
+    "EnrichmentRule",
 ]

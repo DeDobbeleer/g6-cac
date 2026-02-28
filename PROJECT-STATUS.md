@@ -1,8 +1,9 @@
 # CaC-ConfigMgr - Project Status & Next Steps
 
-**Date**: 2026-02-26  
-**Status**: Design Complete → Implementation Ready  
-**Commit**: 9e91ba7 (Cleanup & Fresh Structure)
+**Date**: 2026-02-27  
+**Status**: Phase 1 Complete → Phase 2 Ready  
+**Commit**: c7b721e (Audit Steps 1.1-1.4 complete, all specs verified)
+**Tests**: 40 unit tests passing ✅
 
 ---
 
@@ -18,6 +19,7 @@
 | **Templates** | 20-TEMPLATE-HIERARCHY.md | ✅ 2,072 lines - **Core spec** |
 | **Processing** | 30-PROCESSING-POLICIES.md | ✅ 241 lines - Glue resource PP |
 | **CLI** | 40-CLI-WORKFLOW.md | ✅ 613 lines - Complete workflow |
+| **Validation** | 50-VALIDATION-SPEC.md | ✅ 936 lines - Full validation spec |
 | **Roadmap** | 99-ROADMAP.md | ✅ 94 lines - Decisions tracker |
 | **ADRs** | ADRS.md | ✅ 7 ADRs - Architecture decisions |
 | **Coding Standards** | docs/CODING-STANDARDS.md | ✅ 175 lines |
@@ -59,12 +61,12 @@ g6-cac/
 │   └── 04-processing.yaml
 │
 ├── src/
-│   └── cac_configmgr/            # 🚧 Fresh structure (placeholders)
+│   └── cac_configmgr/            # ✅ Implementation complete
 │       ├── __init__.py
-│       ├── models/               # Pydantic models (TODO)
-│       ├── core/                 # Resolution engine (TODO)
-│       ├── providers/            # API connectors (TODO)
-│       └── cli/                  # CLI commands (TODO)
+│       ├── models/               # ✅ Pydantic models (v2)
+│       ├── core/                 # ✅ Resolution + validation
+│       ├── providers/            # 🚧 API connectors (TODO)
+│       └── cli/                  # ✅ Validate command
 │
 └── tmp/                          # Temporary files (gitignored)
 ```
@@ -107,10 +109,11 @@ g6-cac/
 
 | Component | Status | Priority | Effort |
 |-----------|--------|----------|--------|
-| **Pydantic Models** | ❌ Not started | P0 | Medium |
-| **Template Resolution** | ❌ Not started | P0 | High |
+| **Pydantic Models** | ✅ Implemented | P0 | Medium |
+| **Template Resolution** | ✅ Implemented | P0 | High |
+| **API Validation** | ✅ Implemented | P0 | Medium |
+| **Validate Command** | ✅ Implemented | P0 | Medium |
 | **Director Provider** | ❌ Not started | P0 | High |
-| **Validate Command** | ❌ Not started | P0 | Medium |
 
 ### Important (MVP Complete)
 
@@ -134,48 +137,33 @@ g6-cac/
 
 ## 📋 Next Steps Plan
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation ✅ COMPLETE
 
 **Goal**: Core models and validation working
 
-1. **Implement Pydantic Models** (Priority: P0)
-   ```
-   src/cac_configmgr/models/
-   ├── fleet.py          # Fleet, Node, Tags
-   ├── template.py       # ConfigTemplate, Metadata
-   ├── repos.py          # Repo, HiddenRepoPath
-   ├── routing.py        # RoutingPolicy, RoutingCriteria
-   ├── normalization.py  # NormalizationPolicy
-   ├── processing.py     # ProcessingPolicy
-   └── common.py         # Shared types, validators
-   ```
-   - All models from 20-TEMPLATE-HIERARCHY
+**Status**: All components implemented and tested
+
+1. **✅ Pydantic Models** (`src/cac_configmgr/models/`)
+   - fleet.py, template.py, repos.py, routing.py, normalization.py, processing.py, enrichment.py
+   - All models from 20-TEMPLATE-HIERARCHY.md
    - Validation rules (name patterns, required fields)
-   - Serializers (YAML ↔ Python ↔ JSON)
+   - API-compliant serialization (aliases, field names)
 
-2. **Implement Core Resolution** (Priority: P0)
-   ```
-   src/cac_configmgr/core/
-   ├── resolver.py       # Build inheritance chain
-   ├── merger.py         # Deep merge with _id matching
-   ├── ordering.py       # List ordering (_after, _position)
-   └── interpolator.py   # Variable substitution
-   ```
-   - Algorithm from Section 5 of specs
-   - Unit tests for all merge scenarios
+2. **✅ Core Resolution** (`src/cac_configmgr/core/`)
+   - resolver.py: Build inheritance chain (6 levels)
+   - merger.py: Deep merge with _id matching
+   - interpolator.py: Variable substitution
+   - validator.py: Cross-resource consistency
+   - api_validator.py: API Director compliance
+   - logpoint_dependencies.py: Deployment order
 
-3. **Validate Command** (Priority: P0)
-   ```
-   src/cac_configmgr/cli/
-   ├── main.py           # Entry point
-   └── validate.py       # Validation logic
-   ```
-   - Load YAML files
-   - Validate against Pydantic models
-   - Check references (repos exist, etc.)
-   - Output: Table or JSON
+3. **✅ Validate Command** (`src/cac_configmgr/cli/main.py`)
+   - 4-level validation: Syntax → References → API Compliance → Dependencies
+   - Options: --fleet, --topology, --api-compliance, --offline, --verbose, --json
+   - Exit codes: 0=OK, 1=warnings, 2=errors
+   - Demo configs: Bank A (27 resources), Bank B (22 resources) - All pass
 
-**Deliverable**: `cac-configmgr validate ./configs/` works
+**Deliverable**: `cac-configmgr validate ./demo-configs/` works ✅
 
 ---
 
@@ -241,10 +229,13 @@ g6-cac/
 
 **Goal**: Stable, tested, ready for pilot
 
-1. **Unit Tests** (Priority: P0)
-   - All models
-   - Resolution algorithm
-   - Merge scenarios
+**Current Status**: 40 unit tests already passing ✅
+
+1. **Unit Tests** (Priority: P0) - 🚧 In Progress
+   - ✅ All models (Fleet, Template, Resources)
+   - ✅ Resolution algorithm
+   - ✅ Merge scenarios
+   - 🚧 Edge cases and error handling
 
 2. **Integration Tests** (Priority: P0)
    - Against test Director instance
@@ -312,32 +303,38 @@ g6-cac/
 
 ---
 
-## 🚀 Immediate Actions (Today)
+## 🚀 Immediate Actions (Next)
 
-1. **Review specs with Adriana** (if not done)
-   - Get sign-off on 20-TEMPLATE-HIERARCHY
-   - Clarify open questions
+1. **Start Phase 2: Director Integration**
+   - Implement Director Provider (`providers/director.py`)
+   - Create base Provider abstract class
+   - Implement name-to-ID resolution
 
-2. **Set up development environment**
-   - Python 3.10+
-   - Install dependencies from pyproject.toml
-   - Set up pre-commit hooks (ruff, mypy)
+2. **Implement Plan Command**
+   - Load declared state from YAML
+   - Fetch actual state from Director API
+   - Calculate diff (CREATE/UPDATE/DELETE)
 
-3. **Start Phase 1**
-   - Implement first Pydantic model (Fleet)
-   - Write first unit test
-   - Validate approach
+3. **Implement Apply Command**
+   - Execute plan with proper ordering
+   - Handle async operations and polling
+   - Name-to-ID translation during apply
 
 ---
 
-## 📞 Questions to Resolve
+## 📞 Questions Resolved ✅
 
-Before starting implementation:
+All major questions answered during Phase 1:
 
-1. **State Management**: File state (Terraform-style) or stateless (API-only)?
-2. **Processing Policy**: Are NP/EP truly optional? Default values?
-3. **Intra-level depth**: Limit to 1 level or allow chains?
-4. **DirSync Priority**: Migrate existing or focus on new deployments first?
+1. ✅ **State Management**: Stateless (API-only), no local state file
+2. ✅ **Processing Policy**: NP/EP optional, default to "None" in API
+3. ✅ **Intra-level depth**: Allow chains, 6 levels tested (Bank A)
+4. ✅ **DirSync Priority**: New deployments first, migration later
+
+**New Questions for Phase 2**:
+1. **Apply Strategy**: Create all then update, or sequential per resource type?
+2. **Error Handling**: Stop on first error or continue with rollback?
+3. **Async Timeout**: How long to poll for async operations?
 
 ---
 

@@ -69,7 +69,7 @@ class TestConfigTemplate:
         repo = template.spec.repos[0]
         assert repo.name == "repo-secu"
         assert len(repo.hiddenrepopath) == 1
-        assert repo.hiddenrepopath[0]._id == "fast-tier"
+        assert repo.hiddenrepopath[0].id == "fast-tier"  # Access by field name, not alias
     
     def test_is_root(self):
         root = ConfigTemplate(
@@ -120,13 +120,13 @@ class TestTopologyInstance:
 class TestProcessingPolicy:
     def test_processing_policy_creation(self):
         pp = ProcessingPolicy(
-            name="windows-security",
+            policy_name="windows-security",
             _id="pp-windows-sec",
             routingPolicy="rp-windows-security",
             normalizationPolicy="np-windows",
             enrichmentPolicy="ep-geoip"
         )
-        assert pp.name == "windows-security"
+        assert pp.policy_name == "windows-security"
         assert pp.routing_policy == "rp-windows-security"
         assert pp.normalization_policy == "np-windows"
         assert pp.enrichment_policy == "ep-geoip"
@@ -134,7 +134,7 @@ class TestProcessingPolicy:
     
     def test_processing_policy_optional_fields(self):
         pp = ProcessingPolicy(
-            name="default-pipeline",
+            policy_name="default-pipeline",
             _id="pp-default",
             routingPolicy="rp-default"
             # normalization and enrichment omitted

@@ -4,9 +4,9 @@
 
 **g6-cac** is a Configuration as Code (CaC) tool designed for centralized management of Logpoint Director configurations across multiple pools and SIEM instances.
 
-**Project Status:** Design and specification phase - implementation has not started yet.
+**Project Status:** Phase 1 Complete (Foundation) - Phase 2 (Director Integration) ready to start
 
-**Language:** French (all documentation is in French)
+**Language:** English (all documentation, specifications, and code are in English)
 
 ### Purpose
 
@@ -30,14 +30,14 @@ This tool enables:
 ### Primary Language
 **Python** (decision confirmed in ADR-001)
 
-### Key Libraries (Planned)
-| Library | Purpose |
-|---------|---------|
-| Typer | CLI framework |
-| Rich | Terminal formatting and UI |
-| Pydantic | YAML schema validation |
-| httpx | HTTP client for API calls |
-| textual | TUI (Text User Interface) - future |
+### Key Libraries (Implemented)
+| Library | Purpose | Status |
+|---------|---------|--------|
+| Typer | CLI framework | ✅ Implemented |
+| Rich | Terminal formatting and UI | ✅ Implemented |
+| Pydantic v2 | YAML schema validation | ✅ Implemented |
+| httpx | HTTP client for API calls | 🚧 Phase 2 |
+| textual | TUI (Text User Interface) | ⏳ Future |
 
 ### Configuration Format
 **YAML with Pydantic schemas** - Kubernetes-inspired format:
@@ -54,16 +54,30 @@ spec:
 
 ```
 g6-cac/
-├── SPECS.md              # Project specifications and requirements
-├── ARCHITECTURE.md       # Technical architecture documentation
-├── API_ENDPOINTS.md      # Complete Director API endpoint reference
-├── ADRS.md              # Architecture Decision Records
-├── USER_STORIES.md      # User stories by actor
-├── CONTRAINTES.md       # Technical constraints
-├── schemas.xml          # Draw.io architecture diagrams (XML format)
-├── diagrams/
-│   └── architecture.drawio
-└── AGENTS.md            # This file
+├── specs/                    # Specifications (source of truth)
+│   ├── 00-VISION.md
+│   ├── 01-ARCHITECTURE-LOGPOINT.md
+│   ├── 10-INVENTORY-FLEET.md
+│   ├── 20-TEMPLATE-HIERARCHY.md
+│   ├── 30-PROCESSING-POLICIES.md
+│   ├── 40-CLI-WORKFLOW.md
+│   ├── 50-VALIDATION-SPEC.md
+│   ├── 99-ROADMAP.md
+│   └── *.pdf
+├── docs/
+│   └── CODING-STANDARDS.md
+├── src/
+│   └── cac_configmgr/        # Implementation
+│       ├── models/           # Pydantic models
+│       ├── core/             # Resolution & validation
+│       ├── cli/              # CLI commands
+│       └── providers/        # API connectors (Phase 2)
+├── tests/                    # Unit tests (40 passing)
+├── examples/                 # Example configurations
+├── ADRS.md                   # Architecture Decision Records
+├── PROJECT-STATUS.md         # Current status & next steps
+├── AUDIT-PLAN.md            # Documentation audit
+└── AGENTS.md                # This file
 ```
 
 ## Architecture Overview
@@ -126,21 +140,21 @@ The tool will support these commands:
 
 ## Development Phases
 
-### Phase 1: MVP (Repos + Device Groups)
-- Basic Director connector
-- CRUD for Repos and Device Groups
-- plan/apply commands
-- Unit tests
+### Phase 1: Foundation ✅ COMPLETE
+- ✅ Pydantic models for all resources
+- ✅ Template resolution (6-level inheritance)
+- ✅ 4-level validation system
+- ✅ Validate command with CLI
+- ✅ 40 unit tests passing
 
-### Phase 2: Policies Pipeline
-- Routing Policies
-- Normalization Policies + Packages
-- Enrichment Policies + Sources
-- Processing Policies
-- DAG management
+### Phase 2: Director Integration (Current)
+- 🚧 Director Provider with httpx
+- 🚧 Plan command (diff calculation)
+- 🚧 Apply command (deployment)
+- 🚧 Name-to-ID resolution
 
 ### Phase 3: Devices + Collectors
-- CRUD for Devices
+- Devices CRUD
 - Syslog Collector
 - Log Collection Policies
 - Full validation

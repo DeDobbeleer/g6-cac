@@ -19,19 +19,17 @@ class ProcessingPolicy(BaseModel):
     This is a simple reference resource that groups 3 other policies
     into a single convenient reference for devices.
     
-    Example:
-        processingPolicies:
-          - name: windows-security-pipeline
-            _id: pp-windows-sec
-            routingPolicy: rp-windows-security
-            normalizationPolicy: np-windows
-            enrichmentPolicy: ep-geoip-threatintel
-            description: "Complete pipeline for Windows security logs"
-            enabled: true
+    API Format:
+        {
+            "policy_name": "policyName",
+            "routing_policy": "586cc3edd8aaa406f6fdc8e3",
+            "norm_policy": "_logpoint",
+            "enrich_policy": "57591a2cd8aaa41bfef54888"
+        }
     """
     model_config = ConfigDict(populate_by_name=True)
     
-    name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
+    policy_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$", alias="name")
     id: str = Field(..., alias="_id", description="Template ID for inheritance matching")
     
     # Policy references (links to other resources)
@@ -45,6 +43,10 @@ class ProcessingPolicy(BaseModel):
     
     # Template internal fields
     action: str | None = Field(default=None, alias="_action", description="Action: delete, etc.")
+    
+    def get_name(self) -> str:
+        """Get policy name (policy_name field)."""
+        return self.policy_name
     
     def get_referenced_policies(self) -> dict[str, str | None]:
         """Get all referenced policy names.
