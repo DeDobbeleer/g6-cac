@@ -1898,7 +1898,7 @@ spec:
 ```yaml
 spec:
   normalizationPolicies:
-    - policy_name: np-windows
+    - name: np-windows
       _id: np-windows
       normalization_packages:
         - _id: pkg-windows
@@ -1909,7 +1909,7 @@ spec:
         - _id: cnf-windows
           name: "WindowsCompiled"
       
-    - policy_name: np-linux
+    - name: np-linux
       _id: np-linux
       normalization_packages:
         - _id: pkg-syslog
@@ -1918,7 +1918,7 @@ spec:
           name: "LinuxAuth"
       compiled_normalizer: []
       
-    - policy_name: np-firewall-generic
+    - name: np-firewall-generic
       _id: np-firewall-generic
       normalization_packages:
         - _id: pkg-common
@@ -1930,7 +1930,7 @@ spec:
 spec:
   normalizationPolicies:
     # Windows: Add firewall package
-    - policy_name: np-windows
+    - name: np-windows
       _id: np-windows
       normalization_packages:
         - _id: pkg-windows
@@ -1944,7 +1944,7 @@ spec:
           name: "WindowsCompiled"
       
     # Fortinet: Specific packages
-    - policy_name: np-fortinet
+    - name: np-fortinet
       _id: np-firewall-generic
       normalization_packages:
         - _id: pkg-fortinet

@@ -47,26 +47,26 @@ Verify consistency between:
 
 **Audit Results:**
 
-🔴 **CRITICAL INCOHERENCES FOUND:**
+🔴 **CRITICAL INCOHERENCES FOUND (Based on LogPoint Director API):**
 
-| Issue | Spec | Code | Impact |
-|-------|------|------|--------|
-| NP field name | `policy_name` | `name` | YAML examples won't work |
-| PP field name | `policy_name` | `name` | YAML examples won't work |
-| EP specification structure | `criteria[]`, `rules[]` | `fields[]` | Completely different - examples broken |
+| Element | Spec | Code | API Director | Correct Source | Action Required |
+|---------|------|------|--------------|----------------|-----------------|
+| NP field name | `policy_name` | `name` | `name` | ✅ API | 🔴 **Fix SPEC** |
+| EP specification structure | `criteria[]`, `rules[]` | `fields[]` | `criteria[]`, `rules[]` | ✅ API | 🔴 **Fix CODE** |
+| PP field name | `policy_name` | `name` | `policy_name` | ✅ API | 🔴 **Fix CODE** |
+| RP field name | `policy_name` | `policy_name` | `policy_name` | ✅ All | ✅ OK |
+| EP field name | `name` | `name` | `name` | ✅ All | ✅ OK |
 
-✅ **COHERENT ELEMENTS:**
-- EP field name: `name` ✓
-- All aliases: `normalizationPackages`, `compiledNormalizer`, `routingPolicy`, etc. ✓
-- Internal fields: `_id`, `_action` ✓
-- Inheritance examples ✓
+**LogPoint Director API Reference:**
+- https://docs.logpoint.com/director/director-apis/director-console-api-documentation/normalizationpolicy
+- https://docs.logpoint.com/director/director-apis/director-console-api-documentation/enrichmentpolicy  
+- https://docs.logpoint.com/director/director-apis/director-console-api-documentation/processingpolicy
 
-**YAML Examples Status:** Many examples use `policy_name` but code expects `name` - they will fail.
-
-**Actions Required:** Choose between:
-- Option A: Update code to match spec
-- Option B: Update spec to match code
-- Option C: Hybrid approach with documentation
+**Actions Required:**
+1. ✅ **Update SPEC** (20-TEMPLATE-HIERARCHY.md line ~1901): Change NP `policy_name` → `name`
+2. 🔧 **Update CODE** (enrichment.py): Replace `fields[]` with `criteria[]` + `rules[]` structure
+3. 🔧 **Update CODE** (processing.py): Change `name` → `policy_name`
+4. 🔧 **Update DEMO GENERATOR**: Fix examples to match corrected spec/code
 - Examples use old field names that have evolved
 
 ### 1.2 30-PROCESSING-POLICIES.md
