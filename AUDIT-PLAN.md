@@ -21,7 +21,7 @@ Verify consistency between:
 | Step | Description | Status | Result |
 |------|-------------|--------|--------|
 | 0 | Create audit plan | ✅ Completed | This file |
-| 1 | Verify technical specs | ⏳ Pending | - |
+| 1.1 | Verify 20-TEMPLATE-HIERARCHY.md | ✅ Completed | See Section 1.1 below |
 | 2 | Verify project status | ⏳ Pending | - |
 | 3 | Verify ADRs | ⏳ Pending | - |
 | 4 | Verify other MD files | ⏳ Pending | - |
@@ -44,6 +44,29 @@ Verify consistency between:
 - Spec describes fields that don't exist
 - Different structure between spec and code
 - YAML examples in spec don't work or use outdated structure
+
+**Audit Results:**
+
+🔴 **CRITICAL INCOHERENCES FOUND:**
+
+| Issue | Spec | Code | Impact |
+|-------|------|------|--------|
+| NP field name | `policy_name` | `name` | YAML examples won't work |
+| PP field name | `policy_name` | `name` | YAML examples won't work |
+| EP specification structure | `criteria[]`, `rules[]` | `fields[]` | Completely different - examples broken |
+
+✅ **COHERENT ELEMENTS:**
+- EP field name: `name` ✓
+- All aliases: `normalizationPackages`, `compiledNormalizer`, `routingPolicy`, etc. ✓
+- Internal fields: `_id`, `_action` ✓
+- Inheritance examples ✓
+
+**YAML Examples Status:** Many examples use `policy_name` but code expects `name` - they will fail.
+
+**Actions Required:** Choose between:
+- Option A: Update code to match spec
+- Option B: Update spec to match code
+- Option C: Hybrid approach with documentation
 - Examples use old field names that have evolved
 
 ### 1.2 30-PROCESSING-POLICIES.md
