@@ -21,7 +21,10 @@ Verify consistency between:
 | Step | Description | Status | Result |
 |------|-------------|--------|--------|
 | 0 | Create audit plan | ✅ Completed | This file |
-| 1.1 | Verify 20-TEMPLATE-HIERARCHY.md | ✅ Completed | See Section 1.1 below |
+| 1.1 | Verify 20-TEMPLATE-HIERARCHY.md | ✅ Completed | Fixed NP field name |
+| 1.2 | Verify 30-PROCESSING-POLICIES.md | ✅ Completed | Fixed PP field name |
+| 1.3 | Verify 40-CLI-WORKFLOW.md | ⏳ Pending | - |
+| 1.4 | Verify 10-INVENTORY-FLEET.md | ⏳ Pending | - |
 | 2 | Verify project status | ⏳ Pending | - |
 | 3 | Verify ADRs | ⏳ Pending | - |
 | 4 | Verify other MD files | ⏳ Pending | - |
