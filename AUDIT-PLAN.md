@@ -3,7 +3,7 @@
 **Created:** 2026-02-27  
 **Updated:** 2026-02-27  
 **Branch:** `testing/audit`  
-**Status:** 🚧 In Progress (Steps 1.1-1.3 Complete)
+**Status:** 🚧 In Progress (Steps 1.1-1.4 Complete)
 
 ---
 
@@ -25,7 +25,7 @@ Verify consistency between:
 | 1.1 | Verify 20-TEMPLATE-HIERARCHY.md | ✅ Completed | Fixed NP field name |
 | 1.2 | Verify 30-PROCESSING-POLICIES.md | ✅ Completed | Fixed PP field name |
 | 1.3 | Verify 40-CLI-WORKFLOW.md | ✅ Completed | Section 5.6 added for name-to-ID resolution |
-| 1.4 | Verify 10-INVENTORY-FLEET.md | ⏳ Pending | - |
+| 1.4 | Verify 10-INVENTORY-FLEET.md | ✅ Completed | Spec and code fully aligned |
 | 2 | Verify project status | ⏳ Pending | - |
 | 3 | Verify ADRs | ⏳ Pending | - |
 | 4 | Verify other MD files | ⏳ Pending | - |
@@ -152,10 +152,72 @@ routing_policy:            routing_policy:
 - Links to `50-VALIDATION-SPEC.md` section 6.5 (Name-to-ID translation)
 
 ### 1.4 10-INVENTORY-FLEET.md
-**To verify:**
-- [ ] Fleet model with tags
-- [ ] Node structure (DataNode, SearchHead, AIO)
-- [ ] Tags and clusters documented
+**Status:** ✅ **COMPLETED - FULLY ALIGNED**
+
+**Verified:**
+- [x] Fleet model structure matches code (`Fleet`, `FleetSpec`, `FleetMetadata`)
+- [x] Node types implemented (`AIO`, `DataNode`, `SearchHead` extending `Node`)
+- [x] Tags system working (`Tag` model with `from_dict()` parser)
+- [x] YAML examples from spec parse correctly
+- [x] Field aliases correct (`logpointId`, `managementMode`, `poolUuid`, etc.)
+- [x] Helper methods implemented (`get_nodes_by_tag()`, `get_clusters()`)
+
+**Code Coverage:**
+
+| Spec Element | Code Location | Status |
+|--------------|---------------|--------|
+| `Fleet` model | `fleet.py` class `Fleet` | ✅ Implemented |
+| `FleetMetadata` | `fleet.py` class `FleetMetadata` | ✅ Implemented |
+| `FleetSpec` | `fleet.py` class `FleetSpec` | ✅ Implemented |
+| `DirectorConfig` | `fleet.py` class `DirectorConfig` | ✅ Implemented |
+| `Nodes` container | `fleet.py` class `Nodes` | ✅ Implemented |
+| `AIO` node type | `fleet.py` class `AIO(Node)` | ✅ Implemented |
+| `DataNode` node type | `fleet.py` class `DataNode(Node)` | ✅ Implemented |
+| `SearchHead` node type | `fleet.py` class `SearchHead(Node)` | ✅ Implemented |
+| `Tag` key-value pairs | `fleet.py` class `Tag` | ✅ Implemented |
+| Tag parsing from YAML | `Tag.from_dict()` | ✅ Implemented |
+| Tag validation | `field_validator("tags")` | ✅ Implemented |
+| Cluster grouping | `Fleet.get_clusters()` | ✅ Implemented |
+| Tag-based filtering | `Fleet.get_nodes_by_tag()` | ✅ Implemented |
+| Node tag queries | `Node.has_tag()`, `Node.get_tag_value()` | ✅ Implemented |
+
+**YAML Examples Tested:**
+
+| Use Case | Status | Notes |
+|----------|--------|-------|
+| Use Case 1: Simple AIO Client | ✅ Passes | Parsed correctly |
+| Use Case 2: Distributed with Standalone DNs | ✅ Passes | Parsed correctly |
+| Use Case 3: Full Cluster (Bank) | ✅ Passes | Parsed correctly, cluster grouping works |
+| Use Case 4: Prod + Staging | ✅ Passes | Parsed correctly |
+
+**Field Mapping (Spec → Code):**
+
+| Spec Field | Code Field | Alias | Status |
+|------------|-----------|-------|--------|
+| `apiVersion` | `api_version` | `apiVersion` | ✅ Correct |
+| `managementMode` | `management_mode` | `managementMode` | ✅ Correct |
+| `poolUuid` | `pool_uuid` | `poolUuid` | ✅ Correct |
+| `apiHost` | `api_host` | `apiHost` | ✅ Correct |
+| `credentialsRef` | `credentials_ref` | `credentialsRef` | ✅ Correct |
+| `logpointId` | `logpoint_id` | `logpointId` | ✅ Correct |
+| `dataNodes` | `data_nodes` | `dataNodes` | ✅ Correct |
+| `searchHeads` | `search_heads` | `searchHeads` | ✅ Correct |
+| `aios` | `aios` | (none) | ✅ Correct |
+
+**Reserved Tags (from spec):**
+
+| Tag | Implemented | Usage |
+|-----|-------------|-------|
+| `cluster` | ✅ | Group nodes via `Fleet.get_clusters()` |
+| `env` | ✅ | Filtering via `Fleet.get_nodes_by_tag()` |
+| `sh-for` | ✅ | Documented, used in examples |
+| `role` | ✅ | Documented, used in examples |
+
+**No Issues Found:**
+- All YAML examples from spec parse correctly
+- All field aliases work as expected
+- Tag system handles both formats (simple dict and explicit key/value)
+- Cluster grouping logic matches spec description
 
 ---
 
