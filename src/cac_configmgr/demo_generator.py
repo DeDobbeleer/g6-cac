@@ -18,7 +18,7 @@ from .models import (
     RoutingPolicy, RoutingCriterion,
     ProcessingPolicy,
     NormalizationPolicy, NormalizationPackage,
-    EnrichmentPolicy, EnrichmentSpecification,
+    EnrichmentPolicy, EnrichmentSpecification, EnrichmentCriterion, EnrichmentRule,
     Fleet, FleetMetadata, FleetSpec, DirectorConfig, Nodes,
     DataNode, SearchHead, AIO,
 )
@@ -134,27 +134,37 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                     name="ep-geoip",
                     id="ep-geoip",
                     specifications=[
-                        EnrichmentSpecification(id="spec-geoip", source="GeoIP", fields=["src_ip", "dst_ip"])
+                        EnrichmentSpecification(
+                            id="spec-geoip",
+                            source="GeoIP",
+                            criteria=[EnrichmentCriterion(type="KeyPresent", key="src_ip")],
+                            rules=[EnrichmentRule(category="simple", source_key="geoip_country", event_key="src_country")]
+                        )
                     ]
                 ),
                 EnrichmentPolicy(
                     name="ep-threatintel",
                     id="ep-threatintel",
                     specifications=[
-                        EnrichmentSpecification(id="spec-threat", source="ThreatIntel", fields=["ip", "domain"])
+                        EnrichmentSpecification(
+                            id="spec-threat",
+                            source="ThreatIntel",
+                            criteria=[EnrichmentCriterion(type="KeyPresent", key="ip")],
+                            rules=[EnrichmentRule(category="simple", source_key="threat_score", event_key="risk_level")]
+                        )
                     ]
                 ),
             ],
             processing_policies=[
                 ProcessingPolicy(
-                    name="pp-default",
+                    policy_name="pp-default",
                     id="pp-default",
                     routing_policy="rp-default",
                     normalization_policy="np-auto",
                     description="Default processing pipeline"
                 ),
                 ProcessingPolicy(
-                    name="pp-windows",
+                    policy_name="pp-windows",
                     id="pp-windows",
                     routing_policy="rp-windows",
                     normalization_policy="np-windows",
@@ -162,7 +172,7 @@ def _generate_logpoint_templates(base_dir: Path) -> None:
                     description="Windows log processing"
                 ),
                 ProcessingPolicy(
-                    name="pp-linux",
+                    policy_name="pp-linux",
                     id="pp-linux",
                     routing_policy="rp-linux",
                     normalization_policy="np-linux",
@@ -406,14 +416,24 @@ def _generate_mssp_templates(base_dir: Path) -> None:
                     name="ep-mifid",
                     id="ep-mifid",
                     specifications=[
-                        EnrichmentSpecification(id="spec-mifid", source="MiFID", fields=["transaction_id", "client_ref"]),
-                        EnrichmentSpecification(id="spec-swift", source="SWIFTRef", fields=["bic", "iban"])
+                        EnrichmentSpecification(
+                            id="spec-mifid",
+                            source="MiFID",
+                            criteria=[EnrichmentCriterion(type="KeyPresent", key="transaction_ref")],
+                            rules=[EnrichmentRule(category="simple", source_key="mifid_status", event_key="compliance_status")]
+                        ),
+                        EnrichmentSpecification(
+                            id="spec-swift",
+                            source="SWIFTRef",
+                            criteria=[EnrichmentCriterion(type="KeyPresent", key="swift_msg")],
+                            rules=[EnrichmentRule(category="simple", source_key="swift_bic", event_key="bank_identifier")]
+                        )
                     ]
                 ),
             ],
             processing_policies=[
                 ProcessingPolicy(
-                    name="pp-banking-audit",
+                    policy_name="pp-banking-audit",
                     id="pp-banking-audit",
                     routing_policy="rp-banking-audit",
                     normalization_policy="np-banking",

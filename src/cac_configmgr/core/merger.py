@@ -20,9 +20,11 @@ def _get_resource_name(resource: dict) -> str | None:
     Different resource types use different name fields:
     - repos: 'name'
     - routing_policies: 'policy_name'
-    - processing_policies: 'name'
+    - processing_policies: 'policy_name'
+    - normalization_policies: 'name'
+    - enrichment_policies: 'name'
     """
-    for key in ["name", "policy_name"]:
+    for key in ["policy_name", "name"]:
         if key in resource:
             return resource[key]
     return None

@@ -1,10 +1,10 @@
 # Roadmap & Status
 
-**Last Updated**: 2026-02-26  
+**Last Updated**: 2026-02-27  
 **Language**: All deliverables in **English** (specifications, code, documentation)  
-**Status**: Core Specifications - ✅ COMPLETE  
-**Last Commit**: c615382 - All specs translated to English  
-**Next Step**: Review and validate all specifications
+**Status**: Phase 1 Implementation - ✅ COMPLETE  
+**Last Commit**: 55c4a45 - Validation system with name-based cross-references  
+**Next Step**: Phase 2 - Director API integration (plan/apply commands)
 
 ---
 
@@ -17,6 +17,7 @@
 - ✅ `20-TEMPLATE-HIERARCHY.md` - Template system with Routing Policies (EN)
 - ✅ `30-PROCESSING-POLICIES.md` - Processing Policies specification (EN)
 - ✅ `40-CLI-WORKFLOW.md` - CLI commands and workflow (EN)
+- ✅ `50-VALIDATION-SPEC.md` - Validation specification (EN)
 
 ### Standards (docs/)
 - ✅ `CODING-STANDARDS.md` - Python coding standards (EN)
@@ -36,8 +37,9 @@
 - [x] **Fleet Inventory**: ✅ COMPLETE (tag-based approach) - Q5=Permissive
 - [x] **Template Hierarchy**: ✅ COMPLETE with Template ID mechanism
 - [x] **Routing Policies**: ✅ COMPLETE (vendor-specific, with drop/filter support)
-- [x] **Processing Policies**: ✅ Draft created (glue resource: RP+NP+EP)
-- [x] **Workflow CLI**: ✅ Draft created (validate/plan/apply/drift/backup)
+- [x] **Processing Policies**: ✅ COMPLETE (glue resource: RP+NP+EP)
+- [x] **Workflow CLI**: ✅ COMPLETE (validate/plan/apply/drift/backup)
+- [x] **Validation Spec**: ✅ COMPLETE (4-level validation, name-based cross-refs)
 - [ ] **Alert Rules**: To be defined (post-MVP)
 
 ### 3. DirSync Reference
@@ -87,8 +89,10 @@
 
 1. ~~**Validate Fleet spec**~~ ✅ COMPLETE
 2. ~~**Define Configuration (Topology)**~~ ✅ COMPLETE (Template Hierarchy)
-3. ~~**Define Processing Policies**~~ 🚧 DRAFT CREATED (needs review)
-4. ~~**Define CLI Workflow**~~ 🚧 DRAFT CREATED (needs review)
-5. **Create Pydantic models** from validated specs
+3. ~~**Define Processing Policies**~~ ✅ COMPLETE
+4. ~~**Define CLI Workflow**~~ ✅ COMPLETE
+5. ~~**Create Pydantic models**~~ ✅ COMPLETE (40 tests passing)
+6. ~~**Implement Validation**~~ ✅ COMPLETE (4-level validation)
+7. **Implement Director Provider** for plan/apply commands
 6. **Implement Provider interface** for Director API
 7. **Define Alert Rules** (detection rules - post-MVP)

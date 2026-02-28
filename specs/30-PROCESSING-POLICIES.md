@@ -42,7 +42,7 @@ metadata:
   
 spec:
   processingPolicies:
-    - name: windows-security-pipeline
+    - policy_name: windows-security-pipeline
       _id: pp-windows-sec
       
       # References to the 3 policies
@@ -59,7 +59,7 @@ spec:
 
 | Field | Type | Description | Required |
 |-------|------|-------------|--------|
-| `name` | string | Unique PP name | ✅ Yes |
+| `policy_name` | string | Unique PP name | ✅ Yes |
 | `_id` | string | Template ID for inheritance | ✅ Yes |
 | `routingPolicy` | string | RoutingPolicy reference | ✅ Yes |
 | `normalizationPolicy` | string | NormalizationPolicy reference | ❌ No (default: Auto) |
@@ -77,7 +77,7 @@ Same mechanism as other resources: `_id` for matching.
 # Parent: logpoint/golden-base/processing-policies.yaml
 spec:
   processingPolicies:
-    - name: default-pipeline
+    - policy_name: default-pipeline
       _id: pp-default
       routingPolicy: rp-default
       normalizationPolicy: np-auto
@@ -86,7 +86,7 @@ spec:
 # Child: mssp/acme-corp/base/processing-policies.yaml
 spec:
   processingPolicies:
-    - name: default-pipeline
+    - policy_name: default-pipeline
       _id: pp-default
       routingPolicy: rp-acme-default        # Override
       # normalizationPolicy: inherited (np-auto)
@@ -103,23 +103,23 @@ spec:
 # templates/logpoint/golden-base/processing-policies.yaml
 spec:
   processingPolicies:
-    - name: default
+    - policy_name: default
       _id: pp-default
       routingPolicy: rp-default
       normalizationPolicy: np-auto
       
-    - name: windows-security
+    - policy_name: windows-security
       _id: pp-windows-sec
       routingPolicy: rp-windows
       normalizationPolicy: np-windows
       enrichmentPolicy: ep-geoip
       
-    - name: linux-syslog
+    - policy_name: linux-syslog
       _id: pp-linux
       routingPolicy: rp-linux
       normalizationPolicy: np-syslog
       
-    - name: firewall-perimeter
+    - policy_name: firewall-perimeter
       _id: pp-firewall
       routingPolicy: rp-security
       normalizationPolicy: np-common-firewall
@@ -132,19 +132,19 @@ spec:
 # templates/mssp/acme-corp/base/processing-policies.yaml
 spec:
   processingPolicies:
-    - name: default
+    - policy_name: default
       _id: pp-default
       routingPolicy: rp-acme-default
       normalizationPolicy: np-auto
       enrichmentPolicy: ep-acme-geoip       # Add custom GeoIP
       
-    - name: windows-security
+    - policy_name: windows-security
       _id: pp-windows-sec
       routingPolicy: rp-acme-windows        # Override routing
       normalizationPolicy: np-windows
       enrichmentPolicy: ep-acme-full        # GeoIP + ThreatIntel + AD
       
-    - name: high-value-assets
+    - policy_name: high-value-assets
       _id: pp-high-value
       routingPolicy: rp-critical-assets
       normalizationPolicy: np-auto
@@ -157,7 +157,7 @@ spec:
 # instances/client-bank/prod/instance.yaml
 spec:
   processingPolicies:
-    - name: windows-security
+    - policy_name: windows-security
       _id: pp-windows-sec
       routingPolicy: rp-bank-windows        # Override: bank-specific routing
       # normalizationPolicy: inherited
@@ -175,15 +175,15 @@ Devices reference the PP to use:
 ```yaml
 # devices.yaml
 devices:
-  - name: windows-dc-01
+  - policy_name: windows-dc-01
     type: windows-wec
     processingPolicy: pp-windows-sec       # ← References the PP
     
-  - name: firewall-checkpoint-01
+  - policy_name: firewall-checkpoint-01
     type: checkpoint
     processingPolicy: pp-firewall
     
-  - name: linux-server-generic
+  - policy_name: linux-server-generic
     type: syslog
     processingPolicy: pp-default
 ```
@@ -212,7 +212,7 @@ devices:
 ```yaml
 # INVALID: Non-existent reference
 processingPolicies:
-  - name: bad-pipeline
+  - policy_name: bad-pipeline
     routingPolicy: rp-inexistent           # ERROR: RP not defined
     normalizationPolicy: np-windows
 ```
@@ -223,7 +223,7 @@ processingPolicies:
 
 ```yaml
 processingPolicies:
-  - name: <string>              # Required
+  - policy_name: <string>              # Required
     _id: <string>               # For inheritance
     routingPolicy: <string>     # Required → RoutingPolicy
     normalizationPolicy: <string> # Optional → NormalizationPolicy
