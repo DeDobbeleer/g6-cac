@@ -70,11 +70,42 @@ Verify consistency between:
 - Examples use old field names that have evolved
 
 ### 1.2 30-PROCESSING-POLICIES.md
-**To verify:**
-- [ ] `normalization_packages` structure documented
-- [ ] `specifications` (EP) structure documented
-- [ ] Optional fields (`enrichmentPolicy`) marked as such
-- [ ] References PP → RP → NP/EP documented
+
+**Status:** ⚠️ **NEEDS UPDATE**
+
+**Audit Results:**
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `normalization_packages` structure | ❌ NOT DOCUMENTED | Missing from this spec - only in 20-TEMPLATE-HIERARCHY.md |
+| `specifications` (EP) structure | ❌ NOT DOCUMENTED | EP structure not detailed here |
+| Optional fields marked | ✅ OK | Table shows normalizationPolicy ❌ No, enrichmentPolicy ❌ No |
+| References PP → RP → NP/EP | ✅ OK | Well documented in section 2.1 and 5.1 |
+
+**🔴 CRITICAL ISSUE:**
+
+Document uses `name` field (line 45, 62) but API Director requires `policy_name`:
+
+```yaml
+# Current spec (WRONG):
+- name: windows-security-pipeline
+  _id: pp-windows-sec
+  routingPolicy: rp-windows-security
+
+# Should be (CORRECT per API):
+- policy_name: pp-windows-security
+  _id: pp-windows-sec
+  routingPolicy: rp-windows-security
+```
+
+**Required Actions:**
+1. Update all examples to use `policy_name` instead of `name`
+2. Update field table: `name` → `policy_name`
+3. Add note explaining that `name` in YAML maps to `policy_name` in API
+4. Consider adding NP/EP structure references (or link to 20-TEMPLATE-HIERARCHY.md)
+
+**Files to Fix:**
+- `specs/30-PROCESSING-POLICIES.md` - Update field names and examples
 
 ### 1.3 40-CLI-WORKFLOW.md
 **To verify:**
