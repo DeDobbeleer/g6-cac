@@ -35,6 +35,7 @@ Verify consistency between:
 ### 1.1 20-TEMPLATE-HIERARCHY.md
 **To verify:**
 - [ ] Model structures (NP/EP/PP) match code
+- [ ] **ALL YAML examples in spec match current hierarchy structure**
 - [ ] Documented fields exist in Pydantic models
 - [ ] Aliases (`routingPolicy`, `normalizationPackages`) consistent
 - [ ] Inheritance and merging logic matches implementation
@@ -42,7 +43,8 @@ Verify consistency between:
 **Potential red flags:**
 - Spec describes fields that don't exist
 - Different structure between spec and code
-- YAML examples in spec don't work
+- YAML examples in spec don't work or use outdated structure
+- Examples use old field names that have evolved
 
 ### 1.2 30-PROCESSING-POLICIES.md
 **To verify:**
