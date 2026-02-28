@@ -48,6 +48,12 @@ from .logpoint_dependencies import (
     ResourceType,
 )
 
+from .api_validator import (
+    APIFieldValidator,
+    validate_api_compliance,
+    ValidationError,
+)
+
 __all__ = [
     # Resolver
     "TemplateResolver",
@@ -79,4 +85,8 @@ __all__ = [
     "DependencyError",
     "validate_dependencies",
     "ResourceType",
+    # API Validator
+    "APIFieldValidator",
+    "validate_api_compliance",
+    "ValidationError",
 ]
