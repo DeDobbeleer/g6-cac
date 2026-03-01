@@ -3,7 +3,7 @@
 **Project**: CaC-ConfigMgr  
 **Language**: English  
 **Last Updated**: 2026-02-27  
-**Total ADRs**: 9
+**Total ADRs**: 10
 
 ---
 
@@ -20,6 +20,7 @@
 | ADR-007 | Multi-API Architecture | ✅ Accepted | Extensibility |
 | ADR-008 | Name-Based Validation | ✅ Accepted | Validation |
 | ADR-009 | API Field Name Mapping | ✅ Accepted | API Compliance |
+| ADR-010 | DirSync Relationship | ✅ Accepted | Architecture |
 
 ---
 
@@ -370,3 +371,142 @@ If LogPoint unifies naming in future API versions:
 - Adapter pattern can handle mapping
 - CaC internal schema can remain stable
 - Only API client layer needs updates
+
+---
+
+## ADR-010: DirSync Relationship - Knowledge vs Code
+
+**Status**: ✅ Accepted (Architecture Principle)
+
+**Decision**: Use DirSync as **technical reference** for domain knowledge, but implement with **clean CaC-ConfigMgr architecture**.
+
+**Context**:
+DirSync is an existing internal tool for LogPoint configuration synchronization. It has valuable domain knowledge about Director APIs but uses a legacy architecture unsuitable for Configuration as Code.
+
+---
+
+### What We Learn FROM DirSync (Knowledge Transfer)
+
+DirSync provides valuable **domain expertise** about LogPoint Director:
+
+| Knowledge Area | DirSync Experience | CaC-ConfigMgr Implementation |
+|----------------|-------------------|------------------------------|
+| **API Contracts** | REST endpoints, request/response formats | Documented in `API-REFERENCE.md` |
+| **Authentication** | Token-based auth, pool UUID management | `DirectorProvider` with `httpx` |
+| **Async Operations** | Polling strategies, timeout handling | `anyio` with exponential backoff |
+| **Field Semantics** | Required vs optional fields, defaults | Pydantic validators |
+| **Error Patterns** | Common failures, retry scenarios | Structured error handling |
+| **Payload Structure** | JSON schemas for each resource type | Pydantic models with aliases |
+
+**Example - API Error Handling:**
+```python
+# From DirSync experience: Director returns 202 with async operation
+# CaC-ConfigMgr implementation:
+async def create_resource(self, payload: dict) -> dict:
+    response = await self.client.post("/routingpolicies", json=payload)
+    if response.status_code == 202:
+        # DirSync taught us: need to poll for completion
+        operation_id = response.headers["X-Operation-Id"]
+        return await self._poll_operation(operation_id)
+```
+
+---
+
+### What We Do NOT Copy FROM DirSync (Architecture Differences)
+
+**Why Not Reuse DirSync Code?**
+
+| Aspect | DirSync Approach | CaC-ConfigMgr Approach | Reason |
+|--------|-----------------|------------------------|--------|
+| **Paradigm** | Stateful synchronization | Stateless desired state | Different use cases |
+| **Architecture** | Monolithic | 4-layer clean architecture | Testability, maintainability |
+| **Configuration** | Internal JSON structures | YAML with template inheritance | GitOps, human-readable |
+| **Inheritance** | None | 6-level template hierarchy | Code reuse, DRY |
+| **Validation** | Runtime basic checks | 4-level offline validation | Early error detection |
+| **Approach** | Imperative (how) | Declarative (what) | User experience |
+| **Coupling** | Tight coupling to specific use case | Loose coupling via Provider pattern | Extensibility |
+
+**Code Comparison:**
+
+```python
+# ❌ DirSync: Stateful, synchronous, tightly coupled
+class DirSync:
+    def __init__(self):
+        self.state = {}  # Stateful
+        self.db = DatabaseConnection()  # Tight coupling
+    
+    def sync_config(self, config_id: str):
+        # Direct database queries
+        # Complex state management
+        # Hard to test without real database
+        pass
+
+# ✅ CaC-ConfigMgr: Stateless, async, clean interface
+class DirectorProvider(Provider):
+    def __init__(self, config: DirectorConfig, client: httpx.AsyncClient):
+        self.config = config
+        self.client = client  # Injectable, mockable
+    
+    async def get_resources(self, resource_type: str) -> list[dict]:
+        # Pure HTTP calls
+        # No state management
+        # Easily testable with mocked client
+        response = await self.client.get(f"/{resource_type}")
+        return response.json()
+```
+
+---
+
+### Implementation Guidelines
+
+**DO - Learn from DirSync:**
+- ✅ API endpoint URLs and HTTP methods
+- ✅ Request/response payload structures
+- ✅ Authentication header formats
+- ✅ Async operation polling patterns
+- ✅ Error response codes and messages
+- ✅ Required vs optional fields
+- ✅ Default values and constraints
+
+**DO NOT - Copy from DirSync:**
+- ❌ State management patterns
+- ❌ Database access patterns
+- ❌ Synchronous blocking calls
+- ❌ Hardcoded configuration
+- ❌ Monolithic class structures
+- ❌ Imperative execution logic
+- ❌ Internal JSON formats
+
+**Implementation Rule:**
+
+> **Learn "WHAT" from DirSync:** API contracts, payloads, error scenarios  
+> **Design "HOW" with CaC-ConfigMgr:** Clean architecture, async patterns, testability
+
+---
+
+### Benefits of Clean Implementation
+
+1. **Testability**: Provider interface allows mocking for unit tests
+2. **Extensibility**: Easy to add new providers (Direct API, future products)
+3. **Maintainability**: Clean separation of concerns
+4. **Modern Patterns**: Async/await, dependency injection, type hints
+5. **Future-Proof**: Architecture supports evolution without rewrite
+
+---
+
+### DirSync Knowledge Capture
+
+Key DirSync insights captured in CaC-ConfigMgr:
+
+| DirSync Learning | CaC-ConfigMgr Location |
+|-----------------|------------------------|
+| API endpoint reference | `specs/API-REFERENCE.md` |
+| Async operation behavior | `PHASE2-PLAN.md` polling implementation |
+| Field requirements | Pydantic models with `Field(...)` |
+| Authentication flow | `DirectorProvider.__init__()` |
+| Error retry patterns | `providers/director.py` retry decorator |
+| Payload transformations | `filter_internal_ids()` in engine |
+
+---
+
+**Conclusion**: DirSync is a valuable **reference implementation** for understanding LogPoint Director behavior, but CaC-ConfigMgr requires a fundamentally different architecture to achieve Configuration as Code goals.
