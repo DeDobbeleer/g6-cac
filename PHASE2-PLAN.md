@@ -265,7 +265,71 @@ anyio = "^4.0.0"           # Async support
 - `40-CLI-WORKFLOW.md` section 5.6 (name-to-ID resolution)
 - `50-VALIDATION-SPEC.md` section 6.5 (apply phase)
 - `ADRS.md` ADR-008 (name-based validation)
+- `ADRS.md` ADR-010 (DirSync as reference, not code base)
 - `API-REFERENCE.md` (Director API endpoints)
+
+---
+
+## Relationship with DirSync
+
+### What We Learn FROM DirSync (Knowledge Transfer)
+
+DirSync provides valuable **domain knowledge** about LogPoint Director:
+
+| Aspect | What DirSync Teaches Us | How We Use It |
+|--------|------------------------|---------------|
+| **API Behavior** | Endpoints, payloads, error codes | Documented in `API-REFERENCE.md` |
+| **Authentication** | Token-based auth, pool management | Implemented in `DirectorProvider` |
+| **Async Patterns** | Polling strategies, timeouts | Implemented with `httpx` and `anyio` |
+| **Field Mapping** | Required/optional fields, defaults | Validated in Pydantic models |
+| **Error Handling** | Retry patterns, rate limits | Implemented with exponential backoff |
+
+### What We Do NOT Copy FROM DirSync (Architecture Differences)
+
+**DirSync Architecture (Legacy):**
+```python
+# ❌ Stateful, monolithic, synchronous
+class DirSync:
+    def sync(self):
+        # Complex state management
+        # Direct database connections
+        # Tight coupling to specific use case
+```
+
+**CaC-ConfigMgr Architecture (Modern):**
+```python
+# ✅ Stateless, layered, async
+class DirectorProvider(Provider):
+    async def get_resources(self, resource_type: str) -> list[dict]:
+        # Clean HTTP client
+        # Async operations
+        # Testable with mocks
+```
+
+### Key Differences
+
+| Aspect | DirSync | CaC-ConfigMgr |
+|--------|---------|---------------|
+| **Paradigm** | Stateful synchronization | Stateless configuration as code |
+| **Architecture** | Monolithic | 4-layer clean architecture |
+| **Configuration** | Internal JSON | YAML with Kubernetes style |
+| **Inheritance** | None | 6-level template hierarchy |
+| **Validation** | Runtime basic | 4-level offline validation |
+| **Approach** | Imperative | Declarative |
+| **Extensibility** | Hard to extend | Provider pattern, multi-API |
+
+### Why Clean Implementation?
+
+1. **Different Use Cases**: DirSync synchronizes existing configs; CaC-ConfigMgr deploys desired state
+2. **Different Paradigms**: DirSync is imperative; CaC-ConfigMgr is declarative with templates
+3. **Technical Debt**: DirSync has legacy patterns not suitable for modern CaC
+4. **Testability**: Clean architecture enables proper unit testing
+5. **Future-Proof**: Provider pattern allows multiple backends (Director, Direct, future APIs)
+
+### Implementation Rule
+
+> **Use DirSync for "WHAT" (API contracts, payloads, errors)**  
+> **Use CaC-ConfigMgr architecture for "HOW" (code structure, patterns, interfaces)**
 
 ---
 
