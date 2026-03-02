@@ -55,10 +55,10 @@ class APIFieldValidator:
             "routing_criteria": {"type": list, "required": True},
         },
         "processing_policy": {
-            "policy_name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$"},
-            "routing_policy": {"type": str, "required": True},  # Reference by name
-            "normalization_policy": {"type": str, "required": False},  # Reference by name or "None"
-            "enrichment_policy": {"type": str, "required": False},  # Reference by name or "None"
+            "policy_name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$", "alias": "name"},
+            "routing_policy": {"type": str, "required": True, "alias": "routingPolicy"},  # API uses camelCase
+            "normalization_policy": {"type": str, "required": False, "alias": "normalizationPolicy"},
+            "enrichment_policy": {"type": str, "required": False, "alias": "enrichmentPolicy"},
         },
         "normalization_policy": {
             "name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$"},
@@ -82,6 +82,19 @@ class APIFieldValidator:
             "_id": {"type": str, "required": True},
             "path": {"type": str, "required": True},
             "retention": {"type": int, "required": True},
+        },
+        "device_group": {
+            "name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$"},
+            "description": {"type": str, "required": False},
+            "criteria": {"type": list, "required": False},
+        },
+        "device": {
+            "name": {"type": str, "required": True, "alias": "name"},
+            "ip_address": {"type": str, "required": True, "alias": "ipAddress"},
+            "device_group": {"type": str, "required": False, "alias": "deviceGroup"},
+            "processing_policy": {"type": str, "required": False, "alias": "processingPolicy"},
+            "collectors": {"type": list, "required": False},
+            "enabled": {"type": bool, "required": False},
         },
     }
     
@@ -115,6 +128,8 @@ class APIFieldValidator:
             "processing_policies": "policy_name",
             "normalization_policies": "name",
             "enrichment_policies": "name",
+            "device_groups": "name",
+            "devices": "name",
         }
         
         for resource_type, name_field in name_fields.items():
@@ -140,6 +155,8 @@ class APIFieldValidator:
         self._validate_normalization_policies()
         self._validate_enrichment_policies()
         self._validate_repos()
+        self._validate_device_groups()
+        self._validate_devices()
         
         # Validate cross-references by name (not ID)
         self._validate_dependencies()
@@ -204,22 +221,28 @@ class APIFieldValidator:
         spec = self.API_SPECS["processing_policy"]
         
         for pp in self.resources.get("processing_policies", []):
-            pp_name = pp.get("policy_name", "unknown")
+            pp_name = pp.get("policy_name") or pp.get("name", "unknown")
             
-            # Check required fields
+            # Check required fields (using alias for API field names)
             for field, config in spec.items():
-                if config["required"] and field not in pp:
+                field_name = config.get("alias", field)  # Use alias (camelCase) if defined
+                
+                # Check if field exists (either by field name or alias)
+                field_exists = field in pp or field_name in pp
+                
+                if config["required"] and not field_exists:
                     self.errors.append(ValidationError(
                         resource_type="processing_policies",
                         resource_name=pp_name,
                         field=field,
-                        message=f"Required field '{field}' is missing",
+                        message=f"Required field '{field}' ({field_name}) is missing",
                         severity="ERROR",
                         api_doc="https://docs.logpoint.com/director/director-apis/director-console-api-documentation/processingpolicy"
                     ))
-                elif field in pp:
+                elif field_exists:
                     # Check type (allow None for optional fields)
-                    value = pp[field]
+                    # Use field name if exists, otherwise alias
+                    value = pp.get(field, pp.get(field_name))
                     if value is None and not config.get("required", False):
                         continue  # None is allowed for optional fields (will be converted to "None")
                     
@@ -312,6 +335,7 @@ class APIFieldValidator:
     def _validate_repos(self) -> None:
         """Validate repos against API spec."""
         spec = self.API_SPECS["repo"]
+        tier_spec = self.API_SPECS["hiddenrepopath"]
         
         for repo in self.resources.get("repos", []):
             repo_name = repo.get("name", "unknown")
@@ -346,6 +370,110 @@ class APIFieldValidator:
                                 message=f"Field '{field}' value '{value}' doesn't match pattern {config['pattern']}",
                                 severity="ERROR"
                             ))
+            
+            # Validate hiddenrepopath items
+            for idx, tier in enumerate(repo.get("hiddenrepopath", [])):
+                tier_id = tier.get("_id", f"[{idx}]")
+                for field, config in tier_spec.items():
+                    if config["required"]:
+                        if field not in tier or tier[field] is None:
+                            self.errors.append(ValidationError(
+                                resource_type="repos",
+                                resource_name=f"{repo_name}.hiddenrepopath[{tier_id}]",
+                                field=field,
+                                message=f"Required field '{field}' is missing or null in storage tier",
+                                severity="ERROR"
+                            ))
+                        elif field in tier:
+                            value = tier[field]
+                            expected_type = config["type"]
+                            if not isinstance(value, expected_type):
+                                self.errors.append(ValidationError(
+                                    resource_type="repos",
+                                    resource_name=f"{repo_name}.hiddenrepopath[{tier_id}]",
+                                    field=field,
+                                    message=f"Field '{field}' should be {expected_type.__name__}, got {type(value).__name__}",
+                                    severity="ERROR"
+                                ))
+    
+    def _validate_device_groups(self) -> None:
+        """Validate device groups against API spec."""
+        spec = self.API_SPECS["device_group"]
+        
+        for dg in self.resources.get("device_groups", []):
+            dg_name = dg.get("name", "unknown")
+            
+            for field, config in spec.items():
+                if config["required"] and field not in dg:
+                    self.errors.append(ValidationError(
+                        resource_type="device_groups",
+                        resource_name=dg_name,
+                        field=field,
+                        message=f"Required field '{field}' is missing",
+                        severity="ERROR"
+                    ))
+                elif field in dg:
+                    value = dg[field]
+                    expected_type = config["type"]
+                    if expected_type == str and not isinstance(value, str):
+                        self.errors.append(ValidationError(
+                            resource_type="device_groups",
+                            resource_name=dg_name,
+                            field=field,
+                            message=f"Field '{field}' should be string, got {type(value).__name__}",
+                            severity="ERROR"
+                        ))
+                    
+                    if "pattern" in config and isinstance(value, str):
+                        if not re.match(config["pattern"], value):
+                            self.errors.append(ValidationError(
+                                resource_type="device_groups",
+                                resource_name=dg_name,
+                                field=field,
+                                message=f"Field '{field}' value '{value}' doesn't match pattern {config['pattern']}",
+                                severity="ERROR"
+                            ))
+    
+    def _validate_devices(self) -> None:
+        """Validate devices against API spec."""
+        spec = self.API_SPECS["device"]
+        
+        for device in self.resources.get("devices", []):
+            device_name = device.get("name", "unknown")
+            
+            for field, config in spec.items():
+                field_name = config.get("alias", field)
+                
+                if config["required"] and field_name not in device:
+                    self.errors.append(ValidationError(
+                        resource_type="devices",
+                        resource_name=device_name,
+                        field=field,
+                        message=f"Required field '{field}' ({field_name}) is missing",
+                        severity="ERROR"
+                    ))
+                elif field_name in device:
+                    value = device[field_name]
+                    if value is None and not config.get("required", False):
+                        continue
+                    
+                    expected_type = config["type"]
+                    if expected_type == str and not isinstance(value, str):
+                        self.errors.append(ValidationError(
+                            resource_type="devices",
+                            resource_name=device_name,
+                            field=field,
+                            message=f"Field '{field}' should be string, got {type(value).__name__}",
+                            severity="ERROR"
+                        ))
+                    elif expected_type == bool and not isinstance(value, bool):
+                        self.errors.append(ValidationError(
+                            resource_type="devices",
+                            resource_name=device_name,
+                            field=field,
+                            message=f"Field '{field}' should be boolean, got {type(value).__name__}",
+                            severity="ERROR"
+                        ))
     
     def _validate_dependencies(self) -> None:
         """Validate cross-references between resources by NAME (not ID).
@@ -426,6 +554,32 @@ class APIFieldValidator:
                         message=f"Criterion references non-existent Repo: {repo_ref}",
                         severity="ERROR"
                     ))
+        
+        # Validate Device references (by name)
+        for device in self.resources.get("devices", []):
+            device_name = device.get("name", "unknown")
+            
+            # Check device_group reference
+            dg_ref = device.get("deviceGroup")
+            if dg_ref and dg_ref not in self._indexes.get("device_groups", set()):
+                self.errors.append(ValidationError(
+                    resource_type="devices",
+                    resource_name=device_name,
+                    field="deviceGroup",
+                    message=f"References non-existent Device Group: {dg_ref}",
+                    severity="ERROR"
+                ))
+            
+            # Check processing_policy reference
+            pp_ref = device.get("processingPolicy")
+            if pp_ref and pp_ref not in self._indexes.get("processing_policies", set()):
+                self.errors.append(ValidationError(
+                    resource_type="devices",
+                    resource_name=device_name,
+                    field="processingPolicy",
+                    message=f"References non-existent Processing Policy: {pp_ref}",
+                    severity="ERROR"
+                ))
     
     def print_report(self) -> None:
         """Print validation report."""
