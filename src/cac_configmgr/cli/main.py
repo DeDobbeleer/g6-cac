@@ -235,123 +235,247 @@ def plan(
         "./templates", "--templates-dir", help="Templates directory"
     ),
     output: str = typer.Option("text", "--output", "-o", help="Output format: text, json"),
+    export_dir: Optional[Path] = typer.Option(None, "--export-dir", "-e", help="Export per-node payloads to directory"),
 ):
     """Preview changes (dry-run) - compare desired vs actual state."""
-    console.print("[bold blue]Planning changes...[/bold blue]\n")
+    import json
+    
+    if output != "json":
+        console.print("[bold blue]Planning changes...[/bold blue]\n")
     
     try:
         # Load configuration
         instance = load_instance(topology)
         fleet_config = load_fleet(fleet)
         
-        console.print(f"[cyan]Instance:[/cyan] {instance.metadata.name}")
-        console.print(f"[cyan]Fleet:[/cyan] {fleet_config.metadata.name}")
-        console.print(f"[cyan]Extends:[/cyan] {instance.metadata.extends}")
-        console.print()
-        
         # Resolve template chain
         engine = ResolutionEngine(templates_dir)
         resolved = engine.resolve(instance)
-        
-        # Display resolved configuration
-        table = Table(title="Resolved Configuration", box=box.ROUNDED)
-        table.add_column("Resource Type", style="cyan")
-        table.add_column("Count", style="magenta")
-        table.add_column("Names", style="green")
-        
-        for resource_type, resources in resolved.resources.items():
-            if resources:
-                count = len(resources)
-                names = ", ".join(
-                    r.get("name", r.get("policy_name", r.get("_id", "unnamed")))
-                    for r in resources[:3]
-                )
-                if len(resources) > 3:
-                    names += f" (+{len(resources) - 3} more)"
-                table.add_row(resource_type, str(count), names)
-        
-        console.print(table)
-        console.print()
-        
-        # Show variables
-        if resolved.variables:
-            var_table = Table(title="Variables", box=box.ROUNDED)
-            var_table.add_column("Name", style="cyan")
-            var_table.add_column("Value", style="green")
-            for name, value in resolved.variables.items():
-                var_table.add_row(name, str(value))
-            console.print(var_table)
-            console.print()
         
         # Validate resource consistency
         validator = ConsistencyValidator(resolved.resources)
         consistency_errors = validator.validate()
         
-        if consistency_errors:
-            console.print("[bold red]Consistency Errors:[/bold red]")
-            for error in consistency_errors:
-                console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}.{error.field}: {error.message}")
-            console.print()
-            console.print("[yellow]⚠ Configuration has consistency issues. Review before applying.[/yellow]")
-            console.print()
-        else:
-            console.print("[green]✓ All resource references are consistent[/green]")
-            console.print()
-        
-        # Validate LogPoint dependencies (DirSync/API constraints)
+        # Validate LogPoint dependencies
         dep_validator = LogPointDependencyValidator(resolved.resources)
         dep_errors = dep_validator.validate()
         
-        if dep_errors:
-            # Group by severity
-            errors = [e for e in dep_errors if e.severity == "ERROR"]
-            warnings = [e for e in dep_errors if e.severity == "WARNING"]
+        # Build node configurations for each DataNode in fleet
+        node_configs = {}
+        filtered_resources = filter_internal_ids(resolved.resources)
+        
+        for node in fleet_config.spec.nodes.data_nodes:
+            node_configs[node.name] = {
+                "logpoint_id": node.logpoint_id,
+                "role": "datanode",
+                "tags": [{"key": t.key, "value": t.value} for t in node.tags],
+                "resources": filtered_resources,
+            }
+        
+        for node in fleet_config.spec.nodes.search_heads:
+            node_configs[node.name] = {
+                "logpoint_id": node.logpoint_id,
+                "role": "searchhead", 
+                "tags": [{"key": t.key, "value": t.value} for t in node.tags],
+                "resources": {},  # Search heads get different resources
+            }
+        
+        # Export per-node payloads to files if requested
+        if export_dir:
+            export_dir.mkdir(parents=True, exist_ok=True)
             
-            if errors:
-                console.print("[bold red]LogPoint Dependency Errors:[/bold red]")
-                for error in errors:
-                    console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}: {error.message}")
-                console.print()
+            # Export summary payload (all resources)
+            summary_file = export_dir / f"{instance.metadata.name}-api-payload.json"
+            with open(summary_file, 'w') as f:
+                json.dump(filtered_resources, f, indent=2)
             
-            if warnings:
-                console.print("[bold yellow]LogPoint Dependency Warnings:[/bold yellow]")
-                for error in warnings:
-                    console.print(f"  [yellow]•[/yellow] {error.resource_type}.{error.resource_name}: {error.message}")
-                console.print()
+            # Export per-node payloads
+            exported_files = []
+            for node_name, node_config in node_configs.items():
+                node_file = export_dir / f"{instance.metadata.name}-{node_name}-payload.json"
+                with open(node_file, 'w') as f:
+                    json.dump(node_config, f, indent=2)
+                exported_files.append(node_file.name)
             
-            if errors:
-                console.print("[red]❌ Deployment would fail - dependency errors must be fixed[/red]")
+            if output != "json":
+                console.print(f"[green]✓ Exported {len(exported_files)} node payloads to {export_dir}:[/green]")
+                for fname in exported_files:
+                    console.print(f"  • {fname}")
                 console.print()
+        
+        if output == "json":
+            # JSON output
+            result = {
+                "instance": {
+                    "name": instance.metadata.name,
+                    "extends": instance.metadata.extends,
+                    "fleet": fleet_config.metadata.name,
+                },
+                "fleet": {
+                    "name": fleet_config.metadata.name,
+                    "management_mode": fleet_config.spec.management_mode if fleet_config.spec.management_mode else "director",
+                    "pool_uuid": fleet_config.spec.director.pool_uuid if fleet_config.spec.director else None,
+                },
+                "template_chain": [
+                    {
+                        "level": i + 1,
+                        "name": t.metadata.name,
+                        "type": "Instance" if isinstance(t, type(instance)) else "Template",
+                    }
+                    for i, t in enumerate(resolved.source_chain.templates)
+                ],
+                "variables": resolved.variables,
+                "resources_summary": {
+                    resource_type: len(resources)
+                    for resource_type, resources in resolved.resources.items()
+                    if resources
+                },
+                "nodes": node_configs,
+                "validation": {
+                    "consistent": len(consistency_errors) == 0,
+                    "consistency_errors": [
+                        {
+                            "resource_type": e.resource_type,
+                            "resource_name": e.resource_name,
+                            "field": e.field,
+                            "message": e.message,
+                        }
+                        for e in consistency_errors
+                    ],
+                    "dependencies_satisfied": len([e for e in dep_errors if e.severity == "ERROR"]) == 0,
+                    "dependency_errors": [
+                        {
+                            "resource_type": e.resource_type,
+                            "resource_name": e.resource_name,
+                            "message": e.message,
+                            "severity": e.severity,
+                        }
+                        for e in dep_errors
+                    ],
+                },
+                "deployment_order": dep_validator.get_deployment_order(),
+            }
+            console.print(json.dumps(result, indent=2))
         else:
-            console.print("[green]✓ All LogPoint dependencies satisfied[/green]")
+            # Rich text output
+            console.print(f"[cyan]Instance:[/cyan] {instance.metadata.name}")
+            console.print(f"[cyan]Fleet:[/cyan] {fleet_config.metadata.name}")
+            console.print(f"[cyan]Extends:[/cyan] {instance.metadata.extends}")
             console.print()
-        
-        # Show deployment order
-        console.print("[dim]Deployment order:[/dim]")
-        order = " → ".join(dep_validator.get_deployment_order()[:6])  # Show first 6
-        console.print(f"[dim]  {order} → ...[/dim]")
-        console.print()
-        
-        # Show template chain
-        chain_table = Table(title="Template Chain (Root → Leaf)", box=box.ROUNDED)
-        chain_table.add_column("Level", style="cyan")
-        chain_table.add_column("Template", style="magenta")
-        chain_table.add_column("Type", style="green")
-        
-        for i, template in enumerate(resolved.source_chain.templates):
-            level = i + 1
-            name = template.metadata.name
-            template_type = "Instance" if isinstance(template, type(instance)) else "Template"
-            chain_table.add_row(str(level), name, template_type)
-        
-        console.print(chain_table)
-        console.print()
-        
-        console.print("[green]✓ Plan complete. No changes applied (dry-run).[/green]")
-        console.print("[dim]Use 'apply' command to deploy these changes.[/dim]")
+            
+            # Display resolved configuration
+            table = Table(title="Resolved Configuration", box=box.ROUNDED)
+            table.add_column("Resource Type", style="cyan")
+            table.add_column("Count", style="magenta")
+            table.add_column("Names", style="green")
+            
+            for resource_type, resources in resolved.resources.items():
+                if resources:
+                    count = len(resources)
+                    names = ", ".join(
+                        r.get("name", r.get("policy_name", r.get("_id", "unnamed")))
+                        for r in resources[:3]
+                    )
+                    if len(resources) > 3:
+                        names += f" (+{len(resources) - 3} more)"
+                    table.add_row(resource_type, str(count), names)
+            
+            console.print(table)
+            console.print()
+            
+            # Show variables
+            if resolved.variables:
+                var_table = Table(title="Variables", box=box.ROUNDED)
+                var_table.add_column("Name", style="cyan")
+                var_table.add_column("Value", style="green")
+                for name, value in resolved.variables.items():
+                    var_table.add_row(name, str(value))
+                console.print(var_table)
+                console.print()
+            
+            # Show nodes
+            node_table = Table(title="Fleet Nodes", box=box.ROUNDED)
+            node_table.add_column("Node", style="cyan")
+            node_table.add_column("LogPoint ID", style="magenta")
+            node_table.add_column("Role", style="green")
+            node_table.add_column("Tags", style="white")
+            
+            for node in fleet_config.spec.nodes.data_nodes:
+                tags_str = ", ".join(f"{t.key}:{t.value}" for t in node.tags)
+                node_table.add_row(node.name, node.logpoint_id, "DataNode", tags_str)
+            
+            for node in fleet_config.spec.nodes.search_heads:
+                tags_str = ", ".join(f"{t.key}:{t.value}" for t in node.tags)
+                node_table.add_row(node.name, node.logpoint_id, "SearchHead", tags_str)
+            
+            console.print(node_table)
+            console.print()
+            
+            # Show validation results
+            if consistency_errors:
+                console.print("[bold red]Consistency Errors:[/bold red]")
+                for error in consistency_errors:
+                    console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}.{error.field}: {error.message}")
+                console.print()
+                console.print("[yellow]⚠ Configuration has consistency issues. Review before applying.[/yellow]")
+                console.print()
+            else:
+                console.print("[green]✓ All resource references are consistent[/green]")
+                console.print()
+            
+            if dep_errors:
+                errors = [e for e in dep_errors if e.severity == "ERROR"]
+                warnings = [e for e in dep_errors if e.severity == "WARNING"]
+                
+                if errors:
+                    console.print("[bold red]LogPoint Dependency Errors:[/bold red]")
+                    for error in errors:
+                        console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}: {error.message}")
+                    console.print()
+                
+                if warnings:
+                    console.print("[bold yellow]LogPoint Dependency Warnings:[/bold yellow]")
+                    for error in warnings:
+                        console.print(f"  [yellow]•[/yellow] {error.resource_type}.{error.resource_name}: {error.message}")
+                    console.print()
+                
+                if errors:
+                    console.print("[red]❌ Deployment would fail - dependency errors must be fixed[/red]")
+                    console.print()
+            else:
+                console.print("[green]✓ All LogPoint dependencies satisfied[/green]")
+                console.print()
+            
+            # Show deployment order
+            console.print("[dim]Deployment order:[/dim]")
+            order = " → ".join(dep_validator.get_deployment_order()[:6])
+            console.print(f"[dim]  {order} → ...[/dim]")
+            console.print()
+            
+            # Show template chain
+            chain_table = Table(title="Template Chain (Root → Leaf)", box=box.ROUNDED)
+            chain_table.add_column("Level", style="cyan")
+            chain_table.add_column("Template", style="magenta")
+            chain_table.add_column("Type", style="green")
+            
+            for i, template in enumerate(resolved.source_chain.templates):
+                level = i + 1
+                name = template.metadata.name
+                template_type = "Instance" if isinstance(template, type(instance)) else "Template"
+                chain_table.add_row(str(level), name, template_type)
+            
+            console.print(chain_table)
+            console.print()
+            
+            console.print("[green]✓ Plan complete. No changes applied (dry-run).[/green]")
+            console.print("[dim]Use 'apply' command to deploy these changes.[/dim]")
         
     except Exception as e:
-        console.print(f"[red]Error during planning: {e}[/red]")
+        if output == "json":
+            import json
+            console.print(json.dumps({"error": str(e)}))
+        else:
+            console.print(f"[red]Error during planning: {e}[/red]")
         raise typer.Exit(code=1)
 
 
