@@ -13,6 +13,8 @@ from .routing import RoutingPolicy
 from .processing import ProcessingPolicy
 from .normalization import NormalizationPolicy
 from .enrichment import EnrichmentPolicy
+from .device_groups import DeviceGroup
+from .devices import Device
 
 
 class TemplateMetadata(BaseModel):
@@ -95,6 +97,8 @@ class TemplateSpec(BaseModel):
     processing_policies: list[ProcessingPolicy] = Field(default_factory=list, alias="processingPolicies")
     normalization_policies: list[NormalizationPolicy] = Field(default_factory=list, alias="normalizationPolicies")
     enrichment_policies: list[EnrichmentPolicy] = Field(default_factory=list, alias="enrichmentPolicies")
+    device_groups: list[DeviceGroup] = Field(default_factory=list, alias="deviceGroups")
+    devices: list[Device] = Field(default_factory=list, alias="devices")
     
     def get_all_resources(self) -> dict[str, list]:
         """Get all resources grouped by type.
@@ -108,6 +112,8 @@ class TemplateSpec(BaseModel):
             "processing_policies": self.processing_policies,
             "normalization_policies": self.normalization_policies,
             "enrichment_policies": self.enrichment_policies,
+            "device_groups": self.device_groups,
+            "devices": self.devices,
         }
     
     def get_resource_by_name(self, resource_type: str, name: str) -> Any | None:

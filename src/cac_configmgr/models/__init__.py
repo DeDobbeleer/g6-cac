@@ -54,6 +54,15 @@ from .enrichment import (
     EnrichmentRule,
 )
 
+from .device_groups import (
+    DeviceGroup,
+    Criterion,
+)
+
+from .devices import (
+    Device,
+)
+
 __all__ = [
     # Fleet
     "Fleet",
@@ -89,4 +98,9 @@ __all__ = [
     "EnrichmentSpecification",
     "EnrichmentCriterion",
     "EnrichmentRule",
+    # Device Groups
+    "DeviceGroup",
+    "Criterion",
+    # Devices
+    "Device",
 ]
