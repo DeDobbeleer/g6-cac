@@ -144,10 +144,10 @@ class ResolutionEngine:
                     continue
                 
                 # Convert Pydantic models to dicts for merging
-                # Use by_alias=False to keep Python field names (snake_case)
-                # Don't exclude_none to preserve optional fields like enrichment_policy
+                # Use by_alias=True to preserve _id, _action, etc. (needed for merging)
+                # Use exclude_none=True to avoid None values overriding parent values
                 resource_dicts = [
-                    r.model_dump(by_alias=False, exclude_none=False) if hasattr(r, "model_dump") else r
+                    r.model_dump(by_alias=True, exclude_none=True) if hasattr(r, "model_dump") else r
                     for r in resource_list
                 ]
                 
