@@ -1,0 +1,236 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.0" pages="3">
+  <diagram name="Overview 4 Levels" id="dIsUjfvQK8o4Kq2tux0-">
+    <mxGraphModel dx="1426" dy="791" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontFamily=Arial;" value="CaC-ConfigMgr&#xa;Hierarchical Template System (4 Levels)" vertex="1">
+          <mxGeometry height="50" width="980" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;arcSize=6;" value="" vertex="1">
+          <mxGeometry height="180" width="530" x="40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#6c8ebf;fontStyle=1;fontFamily=Arial;" value="LEVEL 1: LOGPOINT GOLDEN&#xa;Vendor-maintained | Security-hardened | API-optimized" vertex="1">
+          <mxGeometry height="40" width="450" x="60" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="golden-base" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Arial;fontSize=11;" value="golden-base&#xa;&#xa;Standard baseline&#xa;6 standard repos&#xa;OOB routing policies" vertex="1">
+          <mxGeometry height="110" width="150" x="80" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="golden-pci" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Arial;fontSize=11;" value="golden-pci-dss&#xa;&#xa;extends: golden-base&#xa;(intra-level)&#xa;&#xa;+ 7y retention&#xa;+ Audit rules" vertex="1">
+          <mxGeometry height="110" width="150" x="280" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-intra-1" edge="1" parent="1" source="golden-base" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#d6b656;fontFamily=Arial;" target="golden-pci" value="extends">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;arcSize=6;" value="" vertex="1">
+          <mxGeometry height="180" width="530" x="40" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="l2-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#82b366;fontStyle=1;fontFamily=Arial;" value="LEVEL 2: MSSP BASE&#xa;MSSP-specific | Infrastructure conventions | Compliance overlays" vertex="1">
+          <mxGeometry height="40" width="500" x="60" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="acme-base" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Arial;fontSize=11;" value="acme-corp/base&#xa;&#xa;extends: logpoint/&#xa;golden-base&#xa;(cross-level)&#xa;&#xa;+ Custom mount points&#xa;+ MSSP retentions" vertex="1">
+          <mxGeometry height="115" width="150" x="80" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l1-l2" edge="1" parent="1" source="golden-base" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.19;entryY=0.025;entryDx=0;entryDy=0;fontSize=11;strokeColor=#82b366;strokeWidth=2;entryPerimeter=0;fontFamily=Arial;" target="l2-label">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;arcSize=6;" value="" vertex="1">
+          <mxGeometry height="200" width="540" x="30" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="l3-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#d79b00;fontStyle=1;fontFamily=Arial;" value="LEVEL 3: DEPLOYMENT PROFILES&#xa;Simple | Medium | Enterprise | Custom | Banking-addon" vertex="1">
+          <mxGeometry height="40" width="550" x="60" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="profile-enterprise" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Arial;fontSize=11;" value="profile/enterprise&#xa;&#xa;extends: acme-corp/base&#xa;(cross-level)&#xa;&#xa;+ Multi-tier repos&#xa;+ NFS archiving&#xa;+ Complex routing&#xa;50+ resources" vertex="1">
+          <mxGeometry height="130" width="150" x="80" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="profile-banking" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Arial;fontSize=11;" value="profile/banking-addon&#xa;&#xa;extends: enterprise&#xa;(intra-level L3)&#xa;&#xa;+ MiFID compliance&#xa;+ Trading repos&#xa;+ 10y retention" vertex="1">
+          <mxGeometry height="130" width="150" x="280" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l2-l3" edge="1" parent="1" source="acme-base" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.233;entryY=-0.005;entryDx=0;entryDy=0;fontSize=11;strokeColor=#d79b00;strokeWidth=2;entryPerimeter=0;" target="l3-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-intra-3" edge="1" parent="1" source="profile-enterprise" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=11;strokeColor=#d6b656;fontFamily=Arial;" target="profile-banking" value="extends">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l4-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;arcSize=6;" value="" vertex="1">
+          <mxGeometry height="200" width="530" x="40" y="740" as="geometry" />
+        </mxCell>
+        <mxCell id="l4-label" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=14;fontColor=#b85450;fontStyle=1;fontFamily=Arial;" value="LEVEL 4: INSTANCE (CONCRETE)&#xa;Environment-specific values | Customer exceptions | Single-file structure" vertex="1">
+          <mxGeometry height="40" width="600" x="60" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="instance-prod" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;strokeWidth=2;fontFamily=Arial;fontSize=11;" value="banque-dupont/prod&#xa;&#xa;extends: profiles/&#xa;banking-addon&#xa;(cross-level)&#xa;&#xa;vars:&#xa;  retention_nfs: 3650&#xa;  clientCode: DUPONT" vertex="1">
+          <mxGeometry height="135" width="150" x="280" y="795" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l3-l4" edge="1" parent="1" source="profile-banking" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;fontSize=11;strokeColor=#b85450;strokeWidth=3;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="355" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" value="" vertex="1">
+          <mxGeometry height="220" width="340" x="610" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontFamily=Arial;" value="Legend" vertex="1">
+          <mxGeometry height="30" width="100" x="730" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" value="Cross-level inheritance (parent to child)" vertex="1">
+          <mxGeometry height="20" width="300" x="630" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontFamily=Arial;" value="Intra-level inheritance (same level)" vertex="1">
+          <mxGeometry height="20" width="300" x="630" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=11;fontFamily=Arial;" value="Mechanisms:&#xa;• Inherit: Copy unchanged&#xa;• Override: Replace (same name/_id)&#xa;• Append: Add new&#xa;• Patch: Partial modification&#xa;• Delete: Remove (_action: delete)" vertex="1">
+          <mxGeometry height="100" width="310" x="630" y="230" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Merge Mechanisms" id="dZFk0QKo6Y2rILSjHAC-">
+    <mxGraphModel dx="1426" dy="791" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title2" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontFamily=Arial;" value="Deep Merge and List Merging with _id" vertex="1">
+          <mxGeometry height="40" width="1040" x="10" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="parent-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;" value="Parent Template&#xa;golden-base/repos.yaml" vertex="1">
+          <mxGeometry height="200" width="400" x="100" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="parent-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="repos:&#xa;  - name: repo-secu&#xa;    hiddenrepopath:&#xa;      - _id: fast-tier&#xa;        path: /opt/immune/storage&#xa;        retention: 365&#xa;      - _id: warm-tier&#xa;        path: /opt/immune/storage-warm&#xa;        retention: 90" vertex="1">
+          <mxGeometry height="150" width="360" x="120" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="child-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;" value="Child Template&#xa;acme-enterprise/repos.yaml" vertex="1">
+          <mxGeometry height="220" width="400" x="100" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="Pnxx6MqjUXoSVSNIoVP--1" edge="1" parent="1" source="child-content" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="result-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="child-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="repos:&#xa;  - name: repo-secu&#xa;    hiddenrepopath:&#xa;      - _id: fast-tier&#xa;        retention: 7         &lt;-- Override&#xa;      - _id: warm-tier&#xa;        retention: 30        &lt;-- Override&#xa;      - _id: nfs-tier       &lt;-- Append (new)&#xa;        path: /opt/immune/storage-nfs&#xa;        retention: 1095" vertex="1">
+          <mxGeometry height="170" width="360" x="120" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="merge-arrow" edge="1" parent="1" source="parent-box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=12;strokeWidth=2;strokeColor=#666666;fontFamily=Arial;" target="child-box" value="deep_merge()">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="result-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;" value="Final Resolution&#xa;(API Payload)" vertex="1">
+          <mxGeometry height="220" width="450" x="75" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="result-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="{&#xa;  &quot;repos&quot;: [{&#xa;    &quot;name&quot;: &quot;repo-secu&quot;,&#xa;    &quot;hiddenrepopath&quot;: [&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage&quot;, &quot;retention&quot;: 7},&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage-warm&quot;, &quot;retention&quot;: 30},&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage-nfs&quot;, &quot;retention&quot;: 1095}&#xa;    ]&#xa;  }]&#xa;}&#xa;&#xa;Note: _id fields are filtered before API call" vertex="1">
+          <mxGeometry height="170" width="410" x="95" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="ordering-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;" value="Ordering Directives" vertex="1">
+          <mxGeometry height="280" width="380" x="670" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="ordering-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="_after: _id     -- Insert after element&#xa;_before: _id    -- Insert before element&#xa;_position: N    -- Absolute position (1-based)&#xa;_first: true    -- Force first position&#xa;_last: true     -- Force last position&#xa;&#xa;Example:&#xa;- _id: crit-powershell&#xa;  _after: crit-verbose&#xa;  repo: repo-secu&#xa;  key: CommandLine" vertex="1">
+          <mxGeometry height="220" width="340" x="690" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="delete-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;" value="Deletion (_action: delete)" vertex="1">
+          <mxGeometry height="120" width="380" x="680" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="delete-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="To remove an inherited element:&#xa;&#xa;routing_criteria:&#xa;  - _id: crit-obsolete&#xa;    _action: delete" vertex="1">
+          <mxGeometry height="70" width="340" x="700" y="540" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Complete Repo Example" id="40vi6eIu0NAUi0eCc5hK">
+    <mxGraphModel dx="1901" dy="1055" grid="0" gridSize="10" guides="0" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="step1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;fontSize=11;" value="1. LogPoint Golden&#xa;templates/logpoint/golden-mssp/&#xa;repos.yaml" vertex="1">
+          <mxGeometry height="220" width="350" x="390" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="step1-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=10;" value="spec:&lt;br&gt;&amp;nbsp; repos:&lt;br&gt;&amp;nbsp; &amp;nbsp; - name: repo-secu&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; hiddenrepopath:&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; - _id: primary&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; path: /opt/immune/storage&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; retention: 30&lt;br&gt;&amp;nbsp; &amp;nbsp; - name: repo-default&lt;br&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; hiddenrepopath: [...]" vertex="1">
+          <mxGeometry height="120" width="330" x="400" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-15" edge="1" parent="1" source="step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;" target="step3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="814" y="369" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-16" connectable="0" parent="wr8PhfPpDDJnb3Ceh-6X-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Extends" vertex="1">
+          <mxGeometry relative="1" x="-0.16" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="step2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;fontSize=11;" value="2. MSSP ACME Base&#xa;templates/mssp/acme-corp/&#xa;base/repos.yaml" vertex="1">
+          <mxGeometry height="220" width="380" x="380" y="259" as="geometry" />
+        </mxCell>
+        <mxCell id="step2-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=10;" value="metadata:&#xa;  extends: logpoint/golden-mssp&#xa;spec:&#xa;  repos:&#xa;    - name: repo-secu&#xa;      hiddenrepopath:&#xa;        - _id: primary&#xa;          retention: 90    &lt;-- Override&#xa;        - _id: warm (new)&#xa;          path: /opt/immune/storage-warm&#xa;          retention: 365" vertex="1">
+          <mxGeometry height="120" width="360" x="390" y="309" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;fontSize=11;" value="3. Profile Enterprise&#xa;templates/mssp/acme-corp/&#xa;profiles/enterprise/repos.yaml" vertex="1">
+          <mxGeometry height="220" width="380" x="864" y="259" as="geometry" />
+        </mxCell>
+        <mxCell id="step3-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=10;" value="metadata:&#xa;  extends: acme-corp/base&#xa;spec:&#xa;  repos:&#xa;    - name: repo-secu&#xa;      hiddenrepopath:&#xa;        - _id: primary&#xa;          retention: 7     &lt;-- Override&#xa;        - _id: warm&#xa;          retention: 90    &lt;-- Override&#xa;        - _id: nfs (new)&#xa;          path: /opt/immune/storage-nfs" vertex="1">
+          <mxGeometry height="120" width="360" x="874" y="309" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;fontSize=11;" value="4. Instance Banque Dupont&#xa;instances/banque-dupont/&#xa;prod/instance.yaml" vertex="1">
+          <mxGeometry height="180" width="320" x="904" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="step4-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=10;" value="metadata:&#xa;  extends: profiles/enterprise&#xa;spec:&#xa;  vars:&#xa;    retention_nfs: 3650&#xa;  repos:&#xa;    - name: repo-secu&#xa;      hiddenrepopath:&#xa;        - _id: nfs&#xa;          retention: 3650  &lt;-- Var" vertex="1">
+          <mxGeometry height="120" width="300" x="914" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="final-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=top;fontStyle=1;fontFamily=Arial;fontSize=12;" value="FINAL RESOLUTION&#xa;(API Payload)" vertex="1">
+          <mxGeometry height="200" width="600" x="780" y="761.8" as="geometry" />
+        </mxCell>
+        <mxCell id="final-content" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;fontSize=11;" value="{&#xa;  &quot;repos&quot;: [{&#xa;    &quot;name&quot;: &quot;repo-secu&quot;,&#xa;    &quot;hiddenrepopath&quot;: [&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage&quot;, &quot;retention&quot;: 7},&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage-warm&quot;, &quot;retention&quot;: 90},&#xa;      {&quot;path&quot;: &quot;/opt/immune/storage-nfs&quot;, &quot;retention&quot;: 3650}&#xa;    ]&#xa;  }]&#xa;}" vertex="1">
+          <mxGeometry height="140" width="560" x="800" y="776.8" as="geometry" />
+        </mxCell>
+        <mxCell id="note1" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fontColor=#000000;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Arial;fontSize=10;" value="Merge Rules:&#xa;• Same _id = field override&#xa;• New _id = append&#xa;• _action: delete = remove&#xa;• Unspecified = inherited" vertex="1">
+          <mxGeometry height="100" width="200" x="874" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="note2" parent="1" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fontColor=#000000;darkOpacity=0.05;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Arial;fontSize=10;" value="Variable interpolation:&#xa;${vars.retention_nfs}&#xa;becomes 3650" vertex="1">
+          <mxGeometry height="70" width="160" x="1244" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-4" edge="1" parent="1" source="step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.484;entryY=0.009;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=2;" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-5" connectable="0" parent="wr8PhfPpDDJnb3Ceh-6X-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Extends" vertex="1">
+          <mxGeometry relative="1" x="-0.1833" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-8" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Logpoint OOB Templates&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="100" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-9" edge="1" parent="1" source="step3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.472;entryY=0.022;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=2;" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-10" connectable="0" parent="wr8PhfPpDDJnb3Ceh-6X-9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Extends" vertex="1">
+          <mxGeometry relative="1" x="-0.1044" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-12" edge="1" parent="1" source="step4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.472;entryY=0.005;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=2;" target="final-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-13" connectable="0" parent="wr8PhfPpDDJnb3Ceh-6X-12" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="&lt;span style=&quot;font-family: Arial; font-size: 12px;&quot;&gt;resolve() + filter_internal_ids()&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.1848" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-21" edge="1" parent="1" source="wr8PhfPpDDJnb3Ceh-6X-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=4;" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-17" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;MSSP Templates&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="110" y="344" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-18" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Tenant config Files&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="120" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-19" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;API Desired Payload&lt;/b&gt;&lt;/font&gt;" vertex="1">
+          <mxGeometry height="50" width="130" x="120" y="861" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-20" edge="1" parent="1" source="wr8PhfPpDDJnb3Ceh-6X-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.003;entryY=0.436;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=4;" target="step1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-22" edge="1" parent="1" source="wr8PhfPpDDJnb3Ceh-6X-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.003;entryY=0.583;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=4;" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wr8PhfPpDDJnb3Ceh-6X-25" edge="1" parent="1" source="wr8PhfPpDDJnb3Ceh-6X-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.005;entryY=0.621;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=4;" target="final-box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
