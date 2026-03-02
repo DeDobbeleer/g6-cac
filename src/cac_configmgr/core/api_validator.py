@@ -55,10 +55,10 @@ class APIFieldValidator:
             "routing_criteria": {"type": list, "required": True},
         },
         "processing_policy": {
-            "policy_name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$"},
-            "routing_policy": {"type": str, "required": True},  # Reference by name
-            "normalization_policy": {"type": str, "required": False},  # Reference by name or "None"
-            "enrichment_policy": {"type": str, "required": False},  # Reference by name or "None"
+            "policy_name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$", "alias": "name"},
+            "routing_policy": {"type": str, "required": True, "alias": "routingPolicy"},  # API uses camelCase
+            "normalization_policy": {"type": str, "required": False, "alias": "normalizationPolicy"},
+            "enrichment_policy": {"type": str, "required": False, "alias": "enrichmentPolicy"},
         },
         "normalization_policy": {
             "name": {"type": str, "required": True, "pattern": r"^[a-zA-Z0-9_-]+$"},
@@ -204,22 +204,24 @@ class APIFieldValidator:
         spec = self.API_SPECS["processing_policy"]
         
         for pp in self.resources.get("processing_policies", []):
-            pp_name = pp.get("policy_name", "unknown")
+            pp_name = pp.get("policy_name") or pp.get("name", "unknown")
             
-            # Check required fields
+            # Check required fields (using alias for API field names)
             for field, config in spec.items():
-                if config["required"] and field not in pp:
+                field_name = config.get("alias", field)  # Use alias (camelCase) if defined
+                
+                if config["required"] and field_name not in pp:
                     self.errors.append(ValidationError(
                         resource_type="processing_policies",
                         resource_name=pp_name,
                         field=field,
-                        message=f"Required field '{field}' is missing",
+                        message=f"Required field '{field}' ({field_name}) is missing",
                         severity="ERROR",
                         api_doc="https://docs.logpoint.com/director/director-apis/director-console-api-documentation/processingpolicy"
                     ))
-                elif field in pp:
+                elif field_name in pp:
                     # Check type (allow None for optional fields)
-                    value = pp[field]
+                    value = pp[field_name]
                     if value is None and not config.get("required", False):
                         continue  # None is allowed for optional fields (will be converted to "None")
                     
@@ -312,6 +314,7 @@ class APIFieldValidator:
     def _validate_repos(self) -> None:
         """Validate repos against API spec."""
         spec = self.API_SPECS["repo"]
+        tier_spec = self.API_SPECS["hiddenrepopath"]
         
         for repo in self.resources.get("repos", []):
             repo_name = repo.get("name", "unknown")
@@ -346,6 +349,31 @@ class APIFieldValidator:
                                 message=f"Field '{field}' value '{value}' doesn't match pattern {config['pattern']}",
                                 severity="ERROR"
                             ))
+            
+            # Validate hiddenrepopath items
+            for idx, tier in enumerate(repo.get("hiddenrepopath", [])):
+                tier_id = tier.get("_id", f"[{idx}]")
+                for field, config in tier_spec.items():
+                    if config["required"]:
+                        if field not in tier or tier[field] is None:
+                            self.errors.append(ValidationError(
+                                resource_type="repos",
+                                resource_name=f"{repo_name}.hiddenrepopath[{tier_id}]",
+                                field=field,
+                                message=f"Required field '{field}' is missing or null in storage tier",
+                                severity="ERROR"
+                            ))
+                        elif field in tier:
+                            value = tier[field]
+                            expected_type = config["type"]
+                            if not isinstance(value, expected_type):
+                                self.errors.append(ValidationError(
+                                    resource_type="repos",
+                                    resource_name=f"{repo_name}.hiddenrepopath[{tier_id}]",
+                                    field=field,
+                                    message=f"Field '{field}' should be {expected_type.__name__}, got {type(value).__name__}",
+                                    severity="ERROR"
+                                ))
     
     def _validate_dependencies(self) -> None:
         """Validate cross-references between resources by NAME (not ID).
