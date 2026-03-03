@@ -65,6 +65,15 @@ from .conventions import (
     register_convention,
 )
 
+from .planner import (
+    ChangeType,
+    DiffCalculator,
+    FieldDiff,
+    Plan,
+    PlanSummary,
+    ResourceChange,
+)
+
 __all__ = [
     # Resolver
     "TemplateResolver",
@@ -109,4 +118,11 @@ __all__ = [
     "get_registry",
     "get_convention",
     "register_convention",
+    # Planner
+    "ChangeType",
+    "DiffCalculator",
+    "FieldDiff",
+    "Plan",
+    "PlanSummary",
+    "ResourceChange",
 ]
