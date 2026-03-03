@@ -54,6 +54,17 @@ from .api_validator import (
     ValidationError,
 )
 
+from .conventions import (
+    APIConvention,
+    ConventionRegistry,
+    FieldSpec,
+    ResourceSpec,
+    CrossReferenceRule,
+    get_registry,
+    get_convention,
+    register_convention,
+)
+
 __all__ = [
     # Resolver
     "TemplateResolver",
@@ -89,4 +100,13 @@ __all__ = [
     "APIFieldValidator",
     "validate_api_compliance",
     "ValidationError",
+    # Conventions
+    "APIConvention",
+    "ConventionRegistry",
+    "FieldSpec",
+    "ResourceSpec",
+    "CrossReferenceRule",
+    "get_registry",
+    "get_convention",
+    "register_convention",
 ]

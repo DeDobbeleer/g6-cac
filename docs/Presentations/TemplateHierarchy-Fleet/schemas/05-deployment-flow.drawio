@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36" version="29.6.0">
+  <diagram name="Deployment Flow" id="deploy-flow">
+    <mxGraphModel dx="951" dy="527" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="box1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;arcSize=6;" value="" vertex="1">
+          <mxGeometry height="400" width="700" x="250" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="l1-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;" value="&lt;b&gt;Level 1&lt;/b&gt;&lt;br&gt;golden-base&lt;br&gt;&lt;br&gt;• 6 repos" vertex="1">
+          <mxGeometry height="100" width="140" x="325" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l1" edge="1" parent="1" source="l1-box" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="l2-box" value="">
+          <mxGeometry height="30" relative="1" width="30" as="geometry">
+            <mxPoint x="475" y="195" as="sourcePoint" />
+            <mxPoint x="505" y="195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l2-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" value="&lt;b&gt;Level 2&lt;/b&gt;&lt;br&gt;golden-pci-dss&lt;br&gt;(intra-level)&lt;br&gt;• +1 repo&lt;br&gt;(repo-pci-audit)" vertex="1">
+          <mxGeometry height="100" width="160" x="515" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l2" edge="1" parent="1" source="l2-box" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0;entryY=0.422;entryDx=0;entryDy=0;entryPerimeter=0;" target="l3-box" value="">
+          <mxGeometry height="30" relative="1" width="30" as="geometry">
+            <mxPoint x="685" y="195" as="sourcePoint" />
+            <mxPoint x="715" y="195" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l3-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" value="&lt;b&gt;Level 3&lt;/b&gt;&lt;br&gt;acme-base&lt;br&gt;(cross-level)&lt;br&gt;• +1 repo (archive)&lt;br&gt;• Override: 90→180d&lt;br&gt;• Adds warm-tier" vertex="1">
+          <mxGeometry height="120" width="160" x="725" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l3" edge="1" parent="1" source="l3-box" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="l4-box" value="">
+          <mxGeometry height="30" relative="1" width="30" as="geometry">
+            <mxPoint x="805" y="275" as="sourcePoint" />
+            <mxPoint x="805" y="305" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l4-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" value="&lt;b&gt;Level 4&lt;/b&gt;&lt;br&gt;acme-banking-addon&lt;br&gt;&lt;br&gt;• +1 repo (trading)&lt;br&gt;• +3 tiers&lt;br&gt;(fast/warm/nfs)" vertex="1">
+          <mxGeometry height="110" width="160" x="725" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l4" edge="1" parent="1" source="l4-box" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0.983;entryY=0.461;entryDx=0;entryDy=0;entryPerimeter=0;" target="l5-box" value="">
+          <mxGeometry height="30" relative="1" width="30" as="geometry">
+            <mxPoint x="715" y="370" as="sourcePoint" />
+            <mxPoint x="685" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="l5-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" value="&lt;b&gt;Level 5&lt;/b&gt;&lt;br&gt;acme-banking-premium&lt;br&gt;&lt;br&gt;• +1 repo&lt;br&gt;(banking-archive)&lt;br&gt;• 10 years retention" vertex="1">
+          <mxGeometry height="120" width="160" x="515" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-l5" edge="1" parent="1" source="l5-box" style="endArrow=classic;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;" value="">
+          <mxGeometry height="30" relative="1" width="30" as="geometry">
+            <mxPoint x="505" y="375" as="sourcePoint" />
+            <mxPoint x="475" y="375" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="xoH1hL-wmA4eAlGsxaqR-2" edge="1" parent="1" source="l6-box" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;curved=1;strokeColor=#666666;strokeWidth=3;" target="box2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l6-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" value="&lt;b&gt;Level 6&lt;/b&gt;&lt;br&gt;bank-a-prod&lt;br&gt;(instance)&lt;br&gt;&lt;br&gt;• Adds nfs-tier&lt;br&gt;(3650 days)&lt;br&gt;• client_code=BANKA&lt;br&gt;• region=EU-WEST" vertex="1">
+          <mxGeometry height="140" width="160" x="315" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="box2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" value="&lt;b&gt;VARIABLE SUBSTITUTION&lt;/b&gt;&lt;br&gt;&lt;br&gt;Input: retention: &#39;{{retention_default}}&#39; → Output: retention: 180&lt;br&gt;Input: path: &#39;{{mount_warm}}&#39; → Output: path: /opt/immune/storage-warm" vertex="1">
+          <mxGeometry height="80" width="700" x="250" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-box2" edge="1" parent="1" source="box2" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="box3" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="600" y="640" as="sourcePoint" />
+            <mxPoint x="600" y="670" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" value="&lt;b&gt;INTERNAL FIELDS FILTERING&lt;/b&gt;&lt;br&gt;&lt;br&gt;Remove: _id, _first, _last, _action (internal CaC fields)" vertex="1">
+          <mxGeometry height="70" width="700" x="250" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-box3" edge="1" parent="1" source="box3" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=3;strokeColor=#666666;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="box4" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="600" y="760" as="sourcePoint" />
+            <mxPoint x="600" y="790" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="box4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" value="&lt;b&gt;API PAYLOAD (JSON)&lt;/b&gt;&lt;br&gt;&lt;br&gt;→ POST /configapi/{pool_uuid}/{logpoint_id}/repos&lt;br&gt;→ POST /configapi/{pool_uuid}/{logpoint_id}/routing_policies&lt;br&gt;→ POST /configapi/{pool_uuid}/{logpoint_id}/processing_policies" vertex="1">
+          <mxGeometry height="100" width="700" x="250" y="800" as="geometry" />
+        </mxCell>
+        <mxCell id="xoH1hL-wmA4eAlGsxaqR-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="&lt;b style=&quot;font-size: 14px;&quot;&gt;TEMPLATE RESOLUTION&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="260" x="470" y="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

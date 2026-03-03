@@ -28,6 +28,7 @@ def validate(
     topology: Optional[Path] = typer.Option(None, "--topology", "-t", help="Topology YAML file"),
     offline: bool = typer.Option(False, "--offline", help="Skip API connectivity checks"),
     template: Optional[Path] = typer.Option(None, "--template", help="Validate template only"),
+    provider: str = typer.Option("director", "--provider", "-p", help="API provider convention (director, direct)"),
     json: bool = typer.Option(False, "--json", help="Output JSON format"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed validation"),
 ) -> None:
@@ -41,7 +42,7 @@ def validate(
     
     Examples:
         cac-configmgr validate -f fleet.yaml
-        cac-configmgr validate -f fleet.yaml -t topology.yaml
+        cac-configmgr validate -f fleet.yaml -t topology.yaml -p director
         cac-configmgr validate --template templates/mssp/
     """
     try:
@@ -51,6 +52,7 @@ def validate(
             template_dir=template,
             offline=offline,
             verbose=verbose,
+            provider=provider,
         )
         errors = validator.validate()
         
@@ -78,14 +80,27 @@ class UnifiedValidator:
         template_dir: Optional[Path] = None,
         offline: bool = False,
         verbose: bool = False,
+        provider: str = "director",
     ):
         self.fleet = fleet
         self.topology = topology
         self.template_dir = template_dir
         self.offline = offline
         self.verbose = verbose
+        self.provider = provider
         self.stats = ValidationStats()
         self.resolved_resources: dict[str, list[dict]] = {}
+        self._convention = self._load_convention()
+    
+    def _load_convention(self):
+        """Load API convention based on provider selection."""
+        from cac_configmgr.core.conventions import get_convention
+        
+        try:
+            return get_convention(self.provider)
+        except KeyError:
+            console.print(f"[yellow]Warning: Unknown provider '{self.provider}', using director[/yellow]")
+            return get_convention("director")
     
     def validate(self) -> list[ValidationError]:
         """Run all validations.
@@ -180,8 +195,8 @@ class UnifiedValidator:
         return errors
     
     def _validate_api_compliance(self) -> list[ValidationError]:
-        """Validate against LogPoint Director API specs."""
-        return validate_api_compliance(self.resolved_resources)
+        """Validate against API specs using the configured convention."""
+        return validate_api_compliance(self.resolved_resources, self._convention)
     
     def _validate_dependencies(self) -> list[ValidationError]:
         """Validate cross-resource dependencies are already checked in API validator."""

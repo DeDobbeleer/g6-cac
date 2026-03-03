@@ -2,8 +2,8 @@
 
 **Project**: CaC-ConfigMgr  
 **Language**: English  
-**Last Updated**: 2026-02-27  
-**Total ADRs**: 10
+**Last Updated**: 2026-03-03  
+**Total ADRs**: 11
 
 ---
 
@@ -21,6 +21,7 @@
 | ADR-008 | Name-Based Validation | ✅ Accepted | Validation |
 | ADR-009 | API Field Name Mapping | ✅ Accepted | API Compliance |
 | ADR-010 | DirSync Relationship | ✅ Accepted | Architecture |
+| ADR-011 | API Convention Pattern | ✅ Accepted | Extensibility |
 
 ---
 
@@ -98,35 +99,45 @@ spec:
 
 **Status**: ✅ Accepted (PoC)
 
-**Decision**: Implicit deployment order via Processing pipeline
+**Decision**: Directed Acyclic Graph (DAG) with explicit ordering
 
-**Order**:
-1. Repos (no dependencies)
-2. Routing Policies (depends on repos)
-3. Normalization Policies (independent)
-4. Processing Policies (depends on 2 and 3)
+```yaml
+# Dependencies declared, not hardcoded
+spec:
+  processing_policy:
+    - routing_policy: "rp-default"  # Dependency by name
+```
 
 **Rationale**:
-- Simple graph for PoC (linear DAG)
-- No complex resolver needed to demonstrate value
-- Manual processing in correct order acceptable for v1
+- Clear dependency visualization
+- Enables parallelization where safe
+- Detects circular dependencies early
+- Self-documenting
 
 ---
 
 ## ADR-005: State Management
 
-**Status**: 🚧 Proposed
+**Status**: ✅ Proposed
 
-**Decision**: No separate persistent state. State = Director reality + YAML files.
+**Decision**: Stateless (API-only), no local state file
+
+**Context**:
+Terraform uses state files to track resource IDs. This causes issues with team collaboration and drift detection.
 
 **Rationale**:
-- Maximum simplicity for PoC
-- No SPOF, no database to manage
-- `cac sync` allows exporting real state when needed
+- Director is the source of truth
+- IDs fetched at runtime via name lookup
+- No state file = no conflicts, no secrets in state
+- Simpler mental model
 
-**Known Limitations**:
-- `plan` requires API calls to resolve IDs
-- No cache = slower (acceptable for PoC)
+**Implementation**:
+```python
+# No: terraform.tfstate with IDs
+# Yes: Query Director by name
+resources = await provider.get_resources("routing_policies")
+lookup = {r["policy_name"]: r["_id"] for r in resources}
+```
 
 ---
 
@@ -134,16 +145,24 @@ spec:
 
 **Status**: ⏳ Deferred
 
-**Decision**: PoC in Director mode only.
+**Decision**: Implement Director mode first, Direct mode later
+
+**Context**:
+LogPoint can be managed via:
+1. **Director API**: MSSP multi-tenant mode
+2. **Direct API**: Local SIEM API (all-in-one or distributed)
 
 **Rationale**:
-- Director APIs stable and tested
-- Existing MSSP customer base = immediate market
-- Direct SIEM APIs = to be validated, not blocking to demonstrate concept
+- Director mode is primary use case (MSSP)
+- Direct API documentation less mature
+- Can add Direct mode later with same abstraction
 
-**Future Evolution**:
-- Add Direct connector when SIEM APIs available
-- Common abstraction so configs work in both modes
+**Future**:
+```yaml
+metadata:
+  provider: logpoint
+  deploymentMode: director  # or "direct"
+```
 
 ---
 
@@ -163,53 +182,46 @@ spec:
 **Principle**: Same business logic must work with different target APIs.
 
 **Implementation**:
-```yaml
-# Fleet specifies mode
-spec:
-  managementMode: director  # or 'direct'
-  director:
-    apiHost: "https://director.logpoint.com"
-  # direct:  # Future
-  #   apiHost: "https://siem.local"
+```python
+# Abstract provider interface
+class Provider(ABC):
+    @abstractmethod
+    async def get_resources(self, resource_type: str) -> list[dict]: ...
+
+# Director implementation
+class DirectorProvider(Provider): ...
+
+# Future: Direct implementation  
+class DirectProvider(Provider): ...
 ```
 
-**Connectors**:
-- `DirectorConnector`: Director API (MSSP, multi-pool)
-- `DirectConnector`: Local SIEM API (Enterprise, all-in-one)
-- Common `Provider` interface for abstraction
+**Benefits**:
+- One CLI tool for all deployment modes
+- Same YAML configs work everywhere
+- Easy testing with MockProvider
 
 ---
 
 ### 2. API Versioning
 
-**Principle**: Configurations must remain compatible despite API evolution.
+**Principle**: Forward-compatible API evolution.
 
 **Implementation**:
 ```yaml
-apiVersion: cac-configmgr.io/v1   # CaC schema version
-kind: ConfigTemplate
 metadata:
-  name: golden-base
-  version: "2.1.0"                # Template semantic version (SemVer)
+  apiVersion: logpoint-cac/v1  # Schema version
+  directorVersion: "1.3"       # Target API version
 ```
 
-**Rules**:
-- `apiVersion`: Incremented on schema breaking changes
-- `metadata.version`: Template semantic version (SemVer)
-- `extends: template@v2`: Reference specific version
-- Adapter pattern: Same YAML config → different API versions
-
-**Adaptation Example**:
-```python
-# Internal: stable CaC v1 schema
-# Director API v1.3 → direct mapping
-# Director API v2.0 → adapt field 'repo' → 'repository'
-# Direct API v1.0 → adapt endpoints
-```
+**Version Compatibility**:
+| CaC Version | Director API | Status |
+|-------------|--------------|--------|
+| v1 | 1.3+ | ✅ Supported |
+| v1 | 2.0 | ⏳ Future |
 
 ---
 
-### 3. Multi-product
+### 3. Multi-Product
 
 **Principle**: Architecture must support products other than LogPoint SIEM.
 
@@ -225,28 +237,11 @@ metadata:
 **Extensibility**:
 - `kind: ConfigTemplate`: Generic
 - `spec.repos`: SIEM specific (ignored by other products)
-- `spec.playbooks`: SOAR specific (ignored by SIEM)
-- Per-product Pydantic validation (`LogPointConfig`, `SOARConfig`)
+- Provider auto-detection from metadata
 
 ---
 
-**Rationale**:
-- **Future-proof**: No major rewrite for new APIs or products
-- **Protected investment**: Time spent on YAML specs reusable
-- **Strategic alignment**: LogPoint vision = security platform, not just SIEM
-
-**Current Limitations**:
-- PoC: Director only (concept validation)
-- Internal → API mapping: To be completed for each new version
-
-**Future Evolution**:
-- Implement `DirectConnector` when SIEM APIs stable
-- Add `apiVersion: cac-configmgr.io/v2` if breaking changes needed
-- Create providers for other products in catalog
-
----
-
-## ADR-008: Name-Based Cross-Reference Validation
+## ADR-008: Name-Based Validation
 
 **Status**: ✅ Accepted (Architecture Principle)
 
@@ -510,3 +505,276 @@ Key DirSync insights captured in CaC-ConfigMgr:
 ---
 
 **Conclusion**: DirSync is a valuable **reference implementation** for understanding LogPoint Director behavior, but CaC-ConfigMgr requires a fundamentally different architecture to achieve Configuration as Code goals.
+
+---
+
+## ADR-011: API Convention Pattern
+
+**Status**: ✅ Accepted (Extensibility)
+
+**Decision**: Abstract API validation through the **API Convention Pattern** to support multiple providers without code duplication.
+
+**Context**:
+Different LogPoint APIs (Director, Direct, SOAR, NDR) may have:
+- Different field naming conventions (camelCase vs snake_case)
+- Different required fields and validation rules
+- Different resource types and relationships
+- Different API endpoint structures
+
+Hardcoding Director-specific validation rules in the validator would prevent supporting other APIs.
+
+---
+
+### Problem
+
+Initial implementation hardcoded Director API conventions:
+
+```python
+# ❌ Before: Hardcoded for Director only
+class APIFieldValidator:
+    API_SPECS = {
+        "processing_policy": {
+            "routing_policy": {
+                "type": str,
+                "alias": "routingPolicy"  # Director-specific camelCase
+            }
+        }
+    }
+```
+
+This made it impossible to validate against other APIs without duplicating code.
+
+---
+
+### Solution
+
+Introduce `APIConvention` abstraction:
+
+```python
+# ✅ After: Provider-agnostic validation
+class APIConvention(ABC):
+    @abstractmethod
+    def get_field_alias(self, resource_type: str, field_name: str) -> str:
+        """Return API field name (may differ by convention)."""
+        pass
+    
+    @abstractmethod
+    def get_resource_spec(self, resource_type: str) -> ResourceSpec:
+        """Return field specifications for validation."""
+        pass
+
+class DirectorAPIConvention(APIConvention):
+    def get_field_alias(self, rt, field):
+        # Director uses camelCase
+        aliases = {
+            "routing_policy": "routingPolicy",
+            "device_group": "deviceGroup",
+        }
+        return aliases.get(field, field)
+
+class DirectAPIConvention(APIConvention):  # Future
+    def get_field_alias(self, rt, field):
+        # Direct API uses snake_case
+        return field  # No transformation needed
+```
+
+---
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    API Convention Pattern                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────┐         ┌──────────────────────────┐  │
+│  │ APIConvention   │◄────────┤ DirectorAPIConvention    │  │
+│  │   (abstract)    │         │ - camelCase fields       │  │
+│  │                 │         │ - policy_name vs name    │  │
+│  │ • get_field_alias()     │ - Pool-scoped endpoints    │  │
+│  │ • get_name_field()      │                            │  │
+│  │ • get_resource_spec()   │  Future:                   │  │
+│  │ • get_cross_refs()      │  • DirectAPIConvention     │  │
+│  │                         │  • SOARAPIConvention       │  │
+│  └─────────────────┘         └──────────────────────────┘  │
+│           ▲                                                 │
+│           │ injects into                                    │
+│  ┌────────┴──────────────────────────────────────────┐     │
+│  │              APIFieldValidator                     │     │
+│  │                                                    │     │
+│  │  • Validates required fields & types               │     │
+│  │  • Validates cross-references (by name)            │     │
+│  │  • Uses convention for field name mapping          │     │
+│  └────────────────────────────────────────────────────┘     │
+│                            ▲                                │
+│                            │ uses                           │
+│  ┌─────────────────────────┴──────────────────────────┐     │
+│  │                   Provider                         │     │
+│  │                                                    │     │
+│  │  • Provides get_convention() → APIConvention      │     │
+│  │  • DirectorProvider → DirectorAPIConvention       │     │
+│  │  • Future: DirectProvider → DirectAPIConvention   │     │
+│  └────────────────────────────────────────────────────┘     │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Key Components
+
+**1. APIConvention (Abstract)**
+```python
+class APIConvention(ABC):
+    @abstractmethod
+    def get_field_alias(self, resource_type: str, field_name: str) -> str:
+        pass
+    
+    @abstractmethod
+    def get_name_field(self, resource_type: str) -> str:
+        pass
+    
+    @abstractmethod
+    def get_resource_spec(self, resource_type: str) -> ResourceSpec:
+        pass
+    
+    @abstractmethod
+    def get_cross_reference_validations(self) -> list[CrossReferenceRule]:
+        pass
+```
+
+**2. ResourceSpec & FieldSpec**
+```python
+@dataclass
+class FieldSpec:
+    name: str
+    type: type
+    required: bool = True
+    alias: str | None = None  # API field name if different
+    pattern: str | None = None  # Regex for validation
+    api_doc: str = ""
+
+@dataclass
+class ResourceSpec:
+    resource_type: str
+    endpoint: str
+    name_field: str
+    fields: dict[str, FieldSpec]
+```
+
+**3. ConventionRegistry**
+```python
+class ConventionRegistry:
+    def register(self, name: str, convention: type[APIConvention]): ...
+    def get(self, name: str) -> APIConvention: ...
+    def get_for_provider(self, provider: str, mode: str, version: str) -> APIConvention: ...
+```
+
+---
+
+### Usage Examples
+
+**Validation with Director Convention:**
+```python
+from cac_configmgr.providers.conventions import DirectorAPIConvention
+from cac_configmgr.core.api_validator import APIFieldValidator
+
+convention = DirectorAPIConvention()
+validator = APIFieldValidator(resources, convention)
+errors = validator.validate_all()
+```
+
+**CLI with Provider Selection:**
+```bash
+# Default Director convention
+cac-configmgr validate -f fleet.yaml
+
+# Explicit provider selection
+cac-configmgr validate -f fleet.yaml --provider director
+
+# Future: Direct API
+cac-configmgr validate -f fleet.yaml --provider direct
+```
+
+**Provider Implementation:**
+```python
+class DirectorProvider(Provider):
+    def get_convention(self) -> APIConvention:
+        from cac_configmgr.providers.conventions import DirectorAPIConvention
+        return DirectorAPIConvention()
+```
+
+---
+
+### Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Extensibility** | Add new providers without changing validation logic |
+| **Testability** | Mock conventions for unit testing |
+| **Consistency** | Same validation rules applied across providers |
+| **Maintainability** | Provider-specific logic isolated in conventions |
+| **Future-Proof** | New LogPoint products (SOAR, NDR) use same pattern |
+
+---
+
+### Implementation Notes
+
+**Location of Files:**
+- `src/cac_configmgr/core/conventions.py` - Abstract base classes
+- `src/cac_configmgr/providers/conventions/director.py` - Director implementation
+- `src/cac_configmgr/core/api_validator.py` - Provider-agnostic validator
+
+**Registration:**
+Conventions auto-register on import via:
+```python
+# In director.py
+from cac_configmgr.core.conventions import register_convention
+register_convention("director", DirectorAPIConvention)
+register_convention("logpoint/director/v1.3", DirectorAPIConvention)
+```
+
+**Backward Compatibility:**
+```python
+# Default to Director convention for existing code
+def validate_api_compliance(
+    resources: dict,
+    convention: APIConvention | None = None
+) -> list[ValidationError]:
+    if convention is None:
+        from cac_configmgr.providers.conventions import DirectorAPIConvention
+        convention = DirectorAPIConvention()
+    ...
+```
+
+---
+
+### Future Extensions
+
+**1. Direct API Convention**
+```python
+class DirectAPIConvention(APIConvention):
+    """For SIEMs without Director."""
+    def get_field_alias(self, rt, field):
+        return field  # snake_case, no transformation
+```
+
+**2. Product-Specific Conventions**
+```python
+class SOARAPIConvention(APIConvention):
+    """For LogPoint SOAR."""
+    # Different resource types, different fields
+```
+
+**3. Version Migration**
+```python
+class DirectorAPIv2Convention(APIConvention):
+    """When Director API v2 is released."""
+    # Handle breaking changes from v1.3
+```
+
+---
+
+**Decision Date**: 2026-03-03  
+**Implemented By**: Phase 2, Week 1  
+**Related**: ADR-007 (Multi-API), ADR-009 (Field Name Mapping)
