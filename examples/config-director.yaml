@@ -1,0 +1,10 @@
+# Configuration for Director mode (MSSP multi-tenant)
+# Usage: cac-configmgr plan --config examples/config-director.yaml ...
+
+mode: director
+
+director:
+  host: director.logpoint.com
+  pool_uuid: 12345678-1234-1234-1234-123456789abc
+  token: ${LOGPOINT_API_TOKEN}  # From environment variable
+  timeout: 30

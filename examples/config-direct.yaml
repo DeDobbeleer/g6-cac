@@ -1,0 +1,34 @@
+# Configuration for Direct mode (per-node SIEM management)
+# Usage: cac-configmgr plan --config examples/config-direct.yaml ...
+
+mode: direct
+
+direct:
+  timeout: 30
+  # Global token (can be overridden per node)
+  credentials: ${GLOBAL_SIEM_TOKEN}
+  
+  nodes:
+    - node_id: siem-prod-01
+      host: 192.168.1.10
+      port: 443
+      # Uses global token
+      metadata:
+        datacenter: dc-paris
+        role: primary
+        
+    - node_id: siem-prod-02
+      host: 192.168.1.11
+      port: 443
+      credentials: ${SIEM_02_TOKEN}  # Specific token
+      metadata:
+        datacenter: dc-paris
+        role: secondary
+        
+    - node_id: siem-dr
+      host: 10.0.0.50
+      port: 443
+      credentials: ${SIEM_DR_TOKEN}
+      metadata:
+        datacenter: dc-lyon
+        role: dr
