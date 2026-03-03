@@ -15,6 +15,8 @@ from typing import Any
 
 import httpx
 
+from cac_configmgr.core.conventions import APIConvention
+
 from .base import (
     Provider,
     ProviderConfig,
@@ -354,6 +356,15 @@ class DirectorProvider(Provider):
             return response.status_code in (200, 401)  # 401 means reachable but auth needed
         except Exception:
             return False
+    
+    def get_convention(self) -> APIConvention:
+        """Get Director API convention for validation.
+        
+        Returns:
+            DirectorAPIConvention instance
+        """
+        from cac_configmgr.providers.conventions import DirectorAPIConvention
+        return DirectorAPIConvention()
     
     async def _poll_async_operation(
         self, 

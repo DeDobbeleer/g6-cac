@@ -3,6 +3,7 @@
 **Status**: 🚧 In Progress  
 **Branch**: `phase2`  
 **Start Date**: 2026-02-27  
+**Last Updated**: 2026-03-03  
 **Goal**: Connect to Director API, implement plan/apply commands
 
 ---
@@ -25,16 +26,20 @@ Phase 2 implements the core deployment functionality:
 providers/
 ├── __init__.py
 ├── base.py              # Abstract Provider interface
-└── director.py          # DirectorProvider implementation
+├── director.py          # DirectorProvider implementation
+└── conventions/         # API Convention implementations
+    ├── __init__.py
+    └── director.py      # DirectorAPIConvention
 ```
 
 **Features:**
-- [ ] Authentication (token-based)
-- [ ] Pool UUID management
-- [ ] HTTP client (httpx)
-- [ ] Resource CRUD operations
-- [ ] Async operation polling
-- [ ] Error handling and retries
+- [x] Authentication (token-based)
+- [x] Pool UUID management
+- [x] HTTP client (httpx)
+- [x] Resource CRUD operations
+- [x] Async operation polling
+- [x] Error handling and retries
+- [x] API Convention abstraction (ADR-011)
 
 ### 2. Plan Command (`src/cac_configmgr/cli/`)
 
@@ -70,22 +75,27 @@ providers/
 
 ## Implementation Order
 
-### Week 1: Director Provider Foundation
+### Week 1: Director Provider Foundation ✅ COMPLETED
 
 Day 1-2:
-- Create `providers/base.py` - Abstract interface
-- Create `providers/director.py` - Initial implementation
-- Implement authentication
+- [x] Create `providers/base.py` - Abstract interface
+- [x] Create `providers/director.py` - Initial implementation
+- [x] Implement authentication
 
 Day 3-4:
-- Implement GET operations (for plan/diff)
-- Implement POST/PUT/DELETE operations
-- Add error handling
+- [x] Implement GET operations (for plan/diff)
+- [x] Implement POST/PUT/DELETE operations
+- [x] Add error handling
 
 Day 5:
-- Implement async operation polling
-- Add retry logic
-- Write tests
+- [x] Implement async operation polling
+- [x] Add retry logic
+- [x] Write tests (52 tests passing)
+
+**Bonus**:
+- [x] Implement API Convention pattern (ADR-011)
+- [x] Create `providers/conventions/director.py`
+- [x] Refactor `api_validator.py` to use conventions
 
 ### Week 2: Plan Command
 

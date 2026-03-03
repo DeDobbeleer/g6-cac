@@ -1,7 +1,7 @@
 # CaC-ConfigMgr Validation Specification
 
-**Version**: 1.0  
-**Date**: 2026-02-27  
+**Version**: 1.1  
+**Date**: 2026-03-03  
 **Status**: Implementation Complete  
 **File**: `specs/50-VALIDATION-SPEC.md`
 
@@ -146,19 +146,23 @@ offline validation. See [Section 1.4](#14-offline-validation-vs-apply-phase).
 ```
 src/cac_configmgr/
 ├── cli/
-│   └── main.py                          # Orchestrates all 4 levels
-│                                        # Exit codes: 0, 1, 2, 3
-│                                        # Output: Rich table or JSON
+│   └── commands/
+│       └── validate.py                  # Orchestrates all 4 levels
+│                                        # --provider flag for API convention
+│                                        # Exit codes: 0, 1, 2
 │
 ├── core/
-│   ├── api_validator.py                 # APIFieldValidator
-│   │   ├── API_SPECS: field definitions per resource
-│   │   ├── _validate_routing_policies()
-│   │   ├── _validate_processing_policies()
-│   │   ├── _validate_normalization_policies()
-│   │   ├── _validate_enrichment_policies()
-│   │   ├── _validate_repos()
-│   │   └── _validate_dependencies()     # Cross-refs with indexes
+│   ├── conventions.py                   # APIConvention (abstract base)
+│   │   ├── APIConvention               # Interface for provider-specific rules
+│   │   ├── FieldSpec                   # Field validation specification
+│   │   ├── ResourceSpec                # Resource type specification
+│   │   ├── CrossReferenceRule          # Cross-resource validation rule
+│   │   └── ConventionRegistry          # Convention factory/registry
+│   │
+│   ├── api_validator.py                 # APIFieldValidator (provider-agnostic)
+│   │   ├── Validates via injected APIConvention
+│   │   ├── Field type/pattern validation
+│   │   └── Cross-reference validation (by name)
 │   │
 │   ├── validator.py                     # ConsistencyValidator
 │   │   └── Validates RP→Repo references
@@ -170,30 +174,29 @@ src/cac_configmgr/
 │   │
 │   ├── engine.py                        # ResolutionEngine
 │   │   ├── resolve()                    # Full resolution
-│   │   ├── resolve_fleet()              # Fleet only
 │   │   └── filter_internal_ids()        # Clean for API
 │   │
 │   ├── resolver.py                      # TemplateResolver
-│   │   ├── resolve()                    # Build inheritance chain
 │   │   └── CircularDependencyError
 │   │
 │   ├── merger.py                        # Resource merging
-│   │   ├── merge_resources()
-│   │   ├── merge_list_by_id()
-│   │   └── apply_ordering_directives()
+│   │   └── merge_resources()
 │   │
 │   └── interpolator.py                  # Variable interpolation
-│       ├── Interpolator
-│       └── merge_variables()
+│       └── Interpolator
+│
+├── providers/
+│   ├── base.py                          # Provider (abstract)
+│   ├── director.py                      # DirectorProvider
+│   └── conventions/                     # API Convention implementations
+│       ├── __init__.py
+│       └── director.py                  # DirectorAPIConvention
+│           ├── camelCase field aliases
+│           ├── Name field mappings (policy_name vs name)
+│           └── Cross-reference rules
 │
 └── models/                              # Pydantic models
-    ├── fleet.py                         # Fleet, Node, Tags
-    ├── template.py                      # ConfigTemplate, Metadata
-    ├── routing.py                       # RoutingPolicy, RoutingCriteria
-    ├── processing.py                    # ProcessingPolicy
-    ├── normalization.py                 # NormalizationPolicy
-    ├── enrichment.py                    # EnrichmentPolicy, EnrichmentSpecification
-    └── repos.py                         # Repo, HiddenRepoPath
+    └── ...
 ```
 
 ### 2.2 Validation Flow
@@ -210,6 +213,74 @@ src/cac_configmgr/
  Pydantic             merge              Pattern             Index lookup
                       interpolate        Required            Deploy order
 ```
+
+### 2.3 API Convention Pattern (Multi-Provider Support)
+
+**New in v1.1**: Level 3 validation is now provider-agnostic through the **API Convention Pattern**.
+
+#### 2.3.1 Problem
+
+Different LogPoint APIs (Director, Direct, SOAR) have:
+- Different field naming conventions (camelCase vs snake_case)
+- Different required fields
+- Different validation rules
+
+Hardcoding Director-specific rules would prevent supporting other APIs.
+
+#### 2.3.2 Solution: APIConvention Abstraction
+
+```python
+class APIConvention(ABC):
+    @abstractmethod
+    def get_field_alias(self, resource_type: str, field_name: str) -> str:
+        """Return API field name (may differ by convention)."""
+        pass
+    
+    @abstractmethod
+    def get_resource_spec(self, resource_type: str) -> ResourceSpec:
+        """Return field specifications for validation."""
+        pass
+```
+
+**Implementations:**
+| Convention | Provider | Field Style | Use Case |
+|------------|----------|-------------|----------|
+| `DirectorAPIConvention` | LogPoint Director | camelCase aliases | MSSP multi-tenant |
+| `DirectAPIConvention` (future) | SIEM Direct | snake_case | All-in-one deployment |
+| `SOARAPIConvention` (future) | LogPoint SOAR | TBD | SOAR playbooks |
+
+#### 2.3.3 Usage
+
+```python
+# CLI with provider selection
+validator = UnifiedValidator(
+    fleet='fleet.yaml',
+    provider='director'  # Selects DirectorAPIConvention
+)
+
+# Direct usage
+from cac_configmgr.providers.conventions import DirectorAPIConvention
+from cac_configmgr.core.api_validator import APIFieldValidator
+
+convention = DirectorAPIConvention()
+validator = APIFieldValidator(resources, convention)
+errors = validator.validate_all()
+```
+
+#### 2.3.4 Director-Specific Conventions
+
+| Field (YAML) | Director API Field | Convention |
+|--------------|-------------------|------------|
+| `routing_policy` | `routingPolicy` | camelCase |
+| `device_group` | `deviceGroup` | camelCase |
+| `processing_policy` | `processingPolicy` | camelCase |
+| `normalization_policy` | `normalizationPolicy` | camelCase |
+| `enrichment_policy` | `enrichmentPolicy` | camelCase |
+| `ip_address` | `ipAddress` | camelCase |
+| `policy_name` | `policy_name` | unchanged |
+| `name` | `name` | unchanged |
+
+See `ADR-011` for complete specification.
 
 ---
 

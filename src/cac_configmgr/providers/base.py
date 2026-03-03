@@ -13,7 +13,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from cac_configmgr.core.conventions import APIConvention
 
 
 @dataclass
@@ -159,6 +162,19 @@ class Provider(ABC):
         
         Returns:
             True if provider is operational
+        """
+        pass
+    
+    @abstractmethod
+    def get_convention(self) -> APIConvention:
+        """Get the API convention for this provider.
+        
+        Returns:
+            APIConvention implementation for validation
+            
+        Example:
+            convention = provider.get_convention()
+            validator = APIFieldValidator(resources, convention)
         """
         pass
 

@@ -61,9 +61,25 @@ cac-configmgr validate --fleet instances/client-bank/prod/fleet.yaml \
 
 # Validate without API connection (offline)
 cac-configmgr validate --offline fleet.yaml
+
+# Validate with specific API provider convention
+cac-configmgr validate --provider director fleet.yaml
+# Future: cac-configmgr validate --provider direct fleet.yaml
 ```
 
-### 3.2 Validation Levels
+### 3.2 Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-f, --fleet` | Fleet YAML file | Required |
+| `-t, --topology` | Topology YAML file | Optional |
+| `--template` | Validate template directory | Optional |
+| `-p, --provider` | API convention (director, direct) | `director` |
+| `--offline` | Skip API connectivity checks | False |
+| `--json` | Output JSON format | False (text) |
+| `-v, --verbose` | Show detailed validation | False |
+
+### 3.3 Validation Levels
 
 | Level | Description | Output |
 |-------|-------------|--------|
