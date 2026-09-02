@@ -29,7 +29,7 @@ class ProcessingPolicy(BaseModel):
     """
     model_config = ConfigDict(populate_by_name=True)
     
-    policy_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$", alias="name")
+    policy_name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     id: str = Field(..., alias="_id", description="Template ID for inheritance matching")
     
     # Policy references (links to other resources)

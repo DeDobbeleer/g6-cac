@@ -363,7 +363,7 @@ def _generate_mssp_templates(base_dir: Path) -> None:
                 Repo(name="repo-secu", hiddenrepopath=[
                     HiddenRepoPath(id="primary", retention=7),  # Even shorter on fast
                     HiddenRepoPath(id="warm-tier", retention=90),
-                    HiddenRepoPath(id="cold-tier", retention=730),
+                    HiddenRepoPath(id="cold-tier", path="{{mount_cold}}", retention=730),
                     HiddenRepoPath(id="nfs-tier", path="/opt/immune/storage-nfs", retention=3650),
                 ]),
             ],

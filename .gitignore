@@ -23,6 +23,7 @@ wheels/
 # Virtual environments
 .venv/
 venv/
+venv.bak-py312/
 ENV/
 env/
 
@@ -70,6 +71,11 @@ id_rsa*
 
 # Generated demo configs
 demo-configs/
+
+# Internal-only content (kept local, not pushed to public remotes)
+Meetings/
+docs/reflexion/
+docs/feedbacks/
 
 # Virtual environment
 venv/
