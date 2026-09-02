@@ -186,7 +186,40 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 
 ### 4.3 Normalization Policies
 
-*(to be written)*
+- **Sourcing rule (PM decision):** the gold template's normalization policies are **derived from Guardsix's official normalization definitions** — the same normalization packages that ship with the product / Log Source templates. We do not reinvent normalization content; we **curate and reference** what Guardsix already maintains. This keeps templates aligned with product evolution by construction.
+- **Naming convention:** `np-<source>`, aligned with `rp-<source>` (§4.2) — one normalization policy per source.
+- **Basis:** analysis of a real 7.10.0.2 system export (`sync_config_.json`, 43 NormPolicies / 575 NormPackages).
+
+**Normalization mapping (derived from the export):**
+
+| Normalization policy | Source | Normalization packages | Signatures |
+|---|---|---|---|
+| `np-windows` | Windows (Security, ADFS, DNS, DHCP) | LP_Windows DNS, LP_Windows DHCP and DNS, LP_Windows Firewall + FIM packages | 35 |
+| `np-linux` | Linux servers | LP_Common Unix System | 122 |
+| `np-fortigate` | FortiGate | LP_Forti Authenticator v4, LP_FortiAnalyzer, LP_FortinetConnect | 32 |
+| `np-paloalto` | Palo Alto PAN-OS | LP_Palo Alto Global Protect, LP_PaloAlto Cortex Data Lake | 6 |
+| `np-cisco` | Cisco Firepower | LP_Cisco PIXASA, Catalyst 35XX, ISE, FWSM | 958 |
+| `np-citrix-netscaler` | Citrix Netscaler | LP_Citrix NetScaler | 15 |
+| `np-bluecoat` | Blue Coat | LP_BlueCoat Audit, LP_BlueCoat ProxySG | 26 |
+| `np-o365` | Office365 (V2) | LP_O365 Exchange MT | 13 |
+| `np-trendmicro` | Trend Micro (V2) | LP_Trend Micro Office Scan, Control Manager, DB | 20 |
+
+**Gaps — sources of the routing matrix with no usable normalization content in the export [OPEN]:**
+
+- `np-checkpoint` (Check Point) — empty in export; the Premium plugin exists → pull from official package catalog
+- `np-sophos` (Sophos Firewall) — empty in export
+- `np-guardsix-ndr` (Guardsix NDR) — empty in export
+- EDR sources (CrowdStrike, SentinelOne, Defender XDR) — V2 anyway
+- `np-watchguard`, `np-sonicwall`, `np-f5` — not present in the export at all
+
+**Design rules:**
+
+- **Curation, not copy:** the export contains test/training leftovers (`mitre_*`, `normalization_policy_training`, internal `_LogPointAlerts`) — the gold template only keeps policies that map to a source of §3.3.
+- **Windows is one source** (consistent with §4.2): DNS/DHCP packages live inside `np-windows`, no separate `np-windows-dns`.
+- **Signature selection is part of the policy:** a normalization policy is not just a package list — `selected_signatures` matter (e.g. `linux` = 1 package but 122 selected signatures). Gold templates must capture both.
+- **Lifecycle:** create / update / noop (no delete in V1).
+
+**Governance fields:** owner / layer / change rights / inheritance — **[OPEN]**, same model as repos (§4.1).
 
 ### 4.4 Enrichment Policies
 
