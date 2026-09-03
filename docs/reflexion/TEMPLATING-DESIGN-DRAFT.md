@@ -194,7 +194,7 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 - **Catch-all:** anything unmatched goes to a default repo — governance note: unmatched logs must be **visible** (drift/monitoring), never silently dropped. **[OPEN]** keep `repo-default` as catch-all or reject unmatched?
 - **Normalization dependency:** routing criteria reference normalization policies — routing policies are therefore designed **after** normalization policies in the dependency DAG (§2.1).
 - **Event filtering (`drop` field, from the historical spec):** each criterion carries a `drop` action — `store` (default: keep the log), `discard_raw` (drop the raw event, keep normalized), `discard_entirely` (drop completely; `repo` optional). A criterion routing to the same repo as `catch_all` is redundant and should be rejected by validation.
-- **Source mapping (from the historical spec):** an explicit `sourceMappings` object links vendor/product to its routing policy (e.g. `fortinet/fortigate → rp-fortigate`), so devices know which policy applies. The naming convention `rp-<source>` makes this mostly mechanical, but the explicit mapping is kept for validation and lookup.
+- **No separate source-mapping object (corrected):** the historical spec had an explicit `sourceMappings` (vendor/product → policy). **Rejected** — this binding is the job of the **Processing Policy** (§4.5), which references norm policy + routing policy (+ enrichment) per source, and to which devices attach (confirmed on the live 7.10 export).
 - **Lifecycle:** create / update / noop (no delete in V1). Idempotent re-apply: same criteria + same target = noop.
 
 **Governance fields:** owner / layer / change rights / inheritance — **[OPEN]**, same model to define as repos (§4.1).
@@ -264,7 +264,28 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 
 ### 4.5 Processing Policies
 
-*(to be written)*
+- **Role:** the processing policy is the **binding element** — it links one source to its normalization policy, routing policy and (optionally) enrichment policy. Devices attach to a processing policy (§4.6). There is no separate source-mapping object (§4.2).
+- **Naming convention:** `pp-<source>`, aligned with `rp-<source>` / `np-<source>`.
+- **Shape (confirmed on the live 7.10 export):** `{ policy_name, norm_policy, routing_policy, enrich_policy, active }` — references are name-based at template level, resolved to IDs at apply (ID lookup, §1).
+
+**Gold template content:** one `pp-<source>` per V1 source:
+
+| Processing policy | norm_policy | routing_policy | enrich_policy |
+|---|---|---|---|
+| `pp-windows` | `np-windows` | `rp-windows` | `ep-active-directory` (optional) |
+| `pp-linux` | `np-linux` | `rp-linux` | — |
+| `pp-fortigate` | `np-fortigate` | `rp-fortigate` | `ep-threat-intel` (optional) |
+| `pp-paloalto` | `np-paloalto` | `rp-paloalto` | `ep-threat-intel` (optional) |
+| … one per routing-matrix source (§4.2) | | | |
+
+**Design rules:**
+
+- **References must exist:** validation FAILS if `norm_policy`, `routing_policy` or `enrich_policy` does not resolve in the template chain (dependency DAG, §2.1).
+- **No content inside:** a processing policy carries no logic of its own — only references + `active` flag. All logic lives in the referenced policies.
+- **Inheritance:** a lower level may override a reference (e.g. customer replaces `np-fortigate` by their own) — matched by `name`/`_id` like everything else.
+- **Lifecycle:** create / update / noop (no delete in V1).
+
+**Governance fields:** owner / layer / change rights — **[OPEN]**, same model as repos (§4.1).
 
 ### 4.6 Devices
 
@@ -291,7 +312,8 @@ This draft **supersedes** the historical spec (Feb 2026) wherever they differ. R
 | Naming | `repo-system-expert`, `rp-fortinet`, `rp-logpoint-ndr`, "LogPoint" | `repo-expert-system`, `rp-fortigate`, `rp-guardsix-ndr`, "Guardsix" |
 | Normalization content | Fictional placeholder packages | Real packages from a live 7.10.0.2 export (§4.3) |
 | Golden retentions | Scattered example values | Defined as golden reference values in §4.1 |
+| Source mapping | Explicit `sourceMappings` object (vendor/product → policy) | Rejected — the **Processing Policy** carries the binding (§4.5), confirmed on the live export |
 
-**Concepts adopted from the spec into this draft:** `sourceMappings` (§4.2), `drop` field semantics (§4.2), enrichment sources as UI-created prerequisites (§4.4), inheritance/ordering mechanisms (§1).
+**Concepts adopted from the spec into this draft:** `drop` field semantics (§4.2), enrichment sources as UI-created prerequisites (§4.4), inheritance/ordering mechanisms (§1).
 
 **Concept from the spec not yet adopted:** golden template **signing & verification** with audit trail (spec §8.3) — **[OPEN]**, governance topic, to position in the PR-FAQ.

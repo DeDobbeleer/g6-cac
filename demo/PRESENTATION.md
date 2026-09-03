@@ -25,8 +25,9 @@ V1 set: Windows (Security/ADFS/DNS/DHCP + Sysmon), Linux, firewalls (FortiGate, 
 ## 3. Configuration element policies
 
 - **Repos** — max 8 custom per tenant, **aggregation by category** (never one repo per source): `repo-system(-verbose)`, `repo-secu(-verbose)`, `repo-expert-system`, `repo-cloud`. Verbose = shorter retention. Compliance floor: ≥ 1 year if the SIEM is the legal log store.
-- **Routing** — **one policy per source** (`rp-windows`, `rp-fortigate`…), self-contained; verbose split on event type, not device; `drop` field for filtering (`store` / `discard_raw` / `discard_entirely`); `sourceMappings` link vendor/product → policy.
+- **Routing** — **one policy per source** (`rp-windows`, `rp-fortigate`…), self-contained; verbose split on event type, not device; `drop` field for filtering (`store` / `discard_raw` / `discard_entirely`).
 - **Normalization** — `np-<source>` per source, **derived from Guardsix official packages** (curated, not reinvented); real packages verified on a live 7.10 export.
+- **Processing** — `pp-<source>` per source: the **binding element** that links norm policy + routing policy (+ enrichment); devices attach to it. No separate source-mapping object.
 - **Enrichment** — policies templated (`ep-threat-intel`, `ep-geoip`, `ep-active-directory`); **sources are UI-created prerequisites** (read-only API).
 
 ## 4. How templates are built (spec: `specs/20-TEMPLATE-HIERARCHY.md`)
