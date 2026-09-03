@@ -3,20 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from ..utils import load_yaml, load_instance, load_fleet, load_multi_file_template, YamlError
+from ..utils import load_yaml, load_instance, load_multi_file_template, YamlError
 from ..core import (
-    ResolutionEngine, 
-    filter_internal_ids, 
-    ConsistencyValidator, 
-    LogPointDependencyValidator,
-    validate_api_compliance,
+    ResolutionEngine,
     ValidationError as APIValidationError,
 )
 
@@ -27,195 +22,79 @@ console = Console()
 @app.command()
 def validate(
     config_path: Path = typer.Argument(..., help="Path to config file or directory"),
-    fleet: Optional[Path] = typer.Option(None, "--fleet", "-f", help="Fleet YAML file for full validation"),
-    topology: Optional[Path] = typer.Option(None, "--topology", "-t", help="Topology YAML file for dependency validation"),
     api_compliance: bool = typer.Option(True, "--api-compliance/--no-api", help="Validate against LogPoint Director API"),
     offline: bool = typer.Option(False, "--offline", help="Skip API connectivity checks"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose output"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON format"),
 ):
     """Validate configuration with comprehensive checks.
-    
+
     Performs multi-level validation:
     1. Syntax: Valid YAML and schema compliance
-    2. References: All internal references are resolvable  
+    2. References: All internal references are resolvable
     3. API Compliance: Conforms to LogPoint Director API requirements
     4. Dependencies: Cross-resource references are valid
-    
+
     Examples:
         cac-configmgr validate configs/
-        cac-configmgr validate -f fleet.yaml -t topology.yaml --verbose
-        cac-configmgr validate instances/bank-a/prod/ --api-compliance
+        cac-configmgr validate instances/bank-a/prod/ --verbose
     """
     console.print(f"[bold blue]Validating {config_path}...[/bold blue]\n")
-    
+
     # Level 1: Syntax Validation
     files = _find_config_files(config_path)
     if not files:
         console.print("[red]No configuration files found.[/red]")
         raise typer.Exit(code=2)
-    
+
     syntax_errors = []
     warnings = 0
-    
+
     for file in files:
         try:
             data = load_yaml(file)
             kind = data.get("kind", "Unknown")
-            
+
             # Try to validate based on kind
-            if kind == "Fleet":
-                load_fleet(file)
-            elif kind == "ConfigTemplate":
+            if kind == "ConfigTemplate":
                 load_multi_file_template(file.parent if file.parent.name else file)
-            elif kind == "TopologyInstance":
+            elif kind == "Instance":
                 load_instance(file)
             else:
                 warnings += 1
                 if verbose:
                     console.print(f"[yellow]⚠ Unknown kind in {file}: {kind}[/yellow]")
-                
+
         except YamlError as e:
             syntax_errors.append(f"{file}: {e}")
         except Exception as e:
             syntax_errors.append(f"{file}: {e}")
-    
+
     if syntax_errors:
         console.print(f"[bold red]❌ Syntax Errors ({len(syntax_errors)}):[/bold red]")
         for err in syntax_errors:
             console.print(f"  • {err}")
         console.print()
         raise typer.Exit(code=2)
-    
+
     console.print(f"[green]✓ Syntax validation passed[/green] ({len(files)} files)")
     console.print()
-    
-    # Level 2-4: Full validation with fleet and topology
+
+    # Levels 2-4 (API compliance, dependencies) require a resolved
+    # configuration; use the 'resolve' command for full resolution.
     all_errors: list[APIValidationError] = []
     resolved_resources: dict[str, list[dict]] = {}
-    
-    if fleet:
-        try:
-            # Load fleet and resolve templates
-            console.print("[dim]Resolving template chain...[/dim]")
-            
-            if topology:
-                # Use ResolutionEngine with topology for full resolution
-                # Templates are in demo-configs/templates/
-                templates_dir = Path(fleet).parent.parent.parent.parent / "templates"
-                if not templates_dir.exists():
-                    # Fallback: try to find templates directory
-                    templates_dir = Path("demo-configs/templates")
-                engine = ResolutionEngine(templates_dir)
-                instance = load_instance(topology)
-                resolved = engine.resolve(instance)
-                resolved_resources = resolved.resources
-            else:
-                # Just load fleet directly without template resolution
-                fleet_config = load_fleet(fleet)
-                # Extract resources from fleet spec
-                resolved_resources = {}
-                if fleet_config.spec:
-                    if hasattr(fleet_config.spec, 'repos'):
-                        resolved_resources['repos'] = [
-                            r.model_dump(by_alias=True) if hasattr(r, 'model_dump') else r
-                            for r in fleet_config.spec.repos
-                        ]
-                    if hasattr(fleet_config.spec, 'routing_policies'):
-                        resolved_resources['routing_policies'] = [
-                            r.model_dump(by_alias=True) if hasattr(r, 'model_dump') else r
-                            for r in fleet_config.spec.routing_policies
-                        ]
-                    if hasattr(fleet_config.spec, 'processing_policies'):
-                        resolved_resources['processing_policies'] = [
-                            r.model_dump(by_alias=True) if hasattr(r, 'model_dump') else r
-                            for r in fleet_config.spec.processing_policies
-                        ]
-                    if hasattr(fleet_config.spec, 'normalization_policies'):
-                        resolved_resources['normalization_policies'] = [
-                            r.model_dump(by_alias=True) if hasattr(r, 'model_dump') else r
-                            for r in fleet_config.spec.normalization_policies
-                        ]
-                    if hasattr(fleet_config.spec, 'enrichment_policies'):
-                        resolved_resources['enrichment_policies'] = [
-                            r.model_dump(by_alias=True) if hasattr(r, 'model_dump') else r
-                            for r in fleet_config.spec.enrichment_policies
-                        ]
-            
-            # Count resources
-            total_resources = sum(len(v) for v in resolved_resources.values())
-            console.print(f"[dim]  → Resolved {total_resources} resources[/dim]")
-            console.print()
-            
-            # Level 3: API Compliance Validation
-            if api_compliance and resolved_resources:
-                console.print("[dim]Validating API compliance...[/dim]")
-                api_errors = validate_api_compliance(resolved_resources)
-                
-                if api_errors:
-                    # Filter to only API validation errors
-                    api_errs = [e for e in api_errors]
-                    all_errors.extend(api_errs)
-                    console.print(f"[dim]  → {len(api_errs)} API validation issues[/dim]")
-                else:
-                    console.print("[dim]  → API compliance OK[/dim]")
-                console.print()
-            
-            # Level 4: Cross-resource Dependencies
-            if resolved_resources:
-                console.print("[dim]Validating dependencies...[/dim]")
-                
-                # Use ConsistencyValidator
-                consistency_val = ConsistencyValidator(resolved_resources)
-                consistency_errors = consistency_val.validate()
-                all_errors.extend([
-                    APIValidationError(
-                        resource_type=e.resource_type,
-                        resource_name=e.resource_name,
-                        field=e.field,
-                        message=e.message,
-                        severity="ERROR",
-                    )
-                    for e in consistency_errors
-                ])
-                
-                # Use LogPointDependencyValidator
-                dep_val = LogPointDependencyValidator(resolved_resources)
-                dep_errors = dep_val.validate()
-                all_errors.extend([
-                    APIValidationError(
-                        resource_type=e.resource_type,
-                        resource_name=e.resource_name,
-                        field="dependency",
-                        message=e.message,
-                        severity=e.severity,
-                    )
-                    for e in dep_errors
-                ])
-                
-                if consistency_errors or dep_errors:
-                    console.print(f"[dim]  → {len(consistency_errors) + len(dep_errors)} dependency issues[/dim]")
-                else:
-                    console.print("[dim]  → All dependencies valid[/dim]")
-                console.print()
-                
-        except Exception as e:
-            console.print(f"[red]Error during resolution: {e}[/red]")
-            if verbose:
-                import traceback
-                console.print(traceback.format_exc())
-            raise typer.Exit(code=2)
-    
+
     # Output results
     if json_output:
         _output_validation_json(all_errors, warnings, len(files), resolved_resources)
     else:
         _output_validation_rich(all_errors, warnings, len(files), resolved_resources, verbose)
-    
+
     # Exit codes per 40-CLI-WORKFLOW.md
     errors_list = [e for e in all_errors if e.severity == "ERROR"]
     warnings_list = [e for e in all_errors if e.severity == "WARNING"]
-    
+
     if errors_list:
         console.print(f"\n[bold red]❌ Validation failed with {len(errors_list)} error(s)[/bold red]")
         raise typer.Exit(code=2)
@@ -228,254 +107,101 @@ def validate(
 
 
 @app.command()
-def plan(
-    fleet: Path = typer.Option(..., "--fleet", "-f", help="Path to fleet.yaml"),
-    topology: Path = typer.Option(..., "--topology", "-t", help="Path to instance.yaml"),
+def resolve(
+    instance_path: Path = typer.Option(..., "--instance", "-i", help="Path to instance.yaml"),
     templates_dir: Path = typer.Option(
-        "./templates", "--templates-dir", help="Templates directory"
+        "demo-configs", "--templates-dir", help="Config root containing templates/ (or the templates directory itself)"
     ),
-    output: str = typer.Option("text", "--output", "-o", help="Output format: text, json"),
-    export_dir: Optional[Path] = typer.Option(None, "--export-dir", "-e", help="Export per-node payloads to directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output the API payload as JSON only"),
 ):
-    """Preview changes (dry-run) - compare desired vs actual state."""
+    """Resolve an instance's full template chain and print the resolved configuration.
+
+    Loads the instance, builds its inheritance chain, merges and interpolates
+    all resources, then prints the resolved configuration and the API payload
+    (internal _id/_action fields stripped).
+
+    Examples:
+        cac-configmgr resolve --instance demo-configs/instances/banks/bank-a/prod/instance.yaml
+        cac-configmgr resolve -i instance.yaml --templates-dir demo-configs/templates --json
+    """
     import json
-    
-    if output != "json":
-        console.print("[bold blue]Planning changes...[/bold blue]\n")
-    
+
     try:
-        # Load configuration
-        instance = load_instance(topology)
-        fleet_config = load_fleet(fleet)
-        
-        # Resolve template chain
-        engine = ResolutionEngine(templates_dir)
+        instance = load_instance(instance_path)
+
+        # Accept either the config root (containing templates/) or the
+        # templates directory itself.
+        template_root = templates_dir / "templates"
+        if not template_root.exists():
+            template_root = templates_dir
+
+        engine = ResolutionEngine(template_root)
         resolved = engine.resolve(instance)
-        
-        # Validate resource consistency
-        validator = ConsistencyValidator(resolved.resources)
-        consistency_errors = validator.validate()
-        
-        # Validate LogPoint dependencies
-        dep_validator = LogPointDependencyValidator(resolved.resources)
-        dep_errors = dep_validator.validate()
-        
-        # Build node configurations for each DataNode in fleet
-        node_configs = {}
-        filtered_resources = filter_internal_ids(resolved.resources)
-        
-        for node in fleet_config.spec.nodes.data_nodes:
-            node_configs[node.name] = {
-                "logpoint_id": node.logpoint_id,
-                "role": "datanode",
-                "tags": [{"key": t.key, "value": t.value} for t in node.tags],
-                "resources": filtered_resources,
-            }
-        
-        for node in fleet_config.spec.nodes.search_heads:
-            node_configs[node.name] = {
-                "logpoint_id": node.logpoint_id,
-                "role": "searchhead", 
-                "tags": [{"key": t.key, "value": t.value} for t in node.tags],
-                "resources": {},  # Search heads get different resources
-            }
-        
-        # Export per-node payloads to files if requested
-        if export_dir:
-            export_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Export summary payload (all resources)
-            summary_file = export_dir / f"{instance.metadata.name}-api-payload.json"
-            with open(summary_file, 'w') as f:
-                json.dump(filtered_resources, f, indent=2)
-            
-            # Export per-node payloads
-            exported_files = []
-            for node_name, node_config in node_configs.items():
-                node_file = export_dir / f"{instance.metadata.name}-{node_name}-payload.json"
-                with open(node_file, 'w') as f:
-                    json.dump(node_config, f, indent=2)
-                exported_files.append(node_file.name)
-            
-            if output != "json":
-                console.print(f"[green]✓ Exported {len(exported_files)} node payloads to {export_dir}:[/green]")
-                for fname in exported_files:
-                    console.print(f"  • {fname}")
-                console.print()
-        
-        if output == "json":
-            # JSON output
-            result = {
-                "instance": {
-                    "name": instance.metadata.name,
-                    "extends": instance.metadata.extends,
-                    "fleet": fleet_config.metadata.name,
-                },
-                "fleet": {
-                    "name": fleet_config.metadata.name,
-                    "management_mode": fleet_config.spec.management_mode if fleet_config.spec.management_mode else "director",
-                    "pool_uuid": fleet_config.spec.director.pool_uuid if fleet_config.spec.director else None,
-                },
-                "template_chain": [
-                    {
-                        "level": i + 1,
-                        "name": t.metadata.name,
-                        "type": "Instance" if isinstance(t, type(instance)) else "Template",
-                    }
-                    for i, t in enumerate(resolved.source_chain.templates)
-                ],
-                "variables": resolved.variables,
-                "resources_summary": {
-                    resource_type: len(resources)
-                    for resource_type, resources in resolved.resources.items()
-                    if resources
-                },
-                "nodes": node_configs,
-                "validation": {
-                    "consistent": len(consistency_errors) == 0,
-                    "consistency_errors": [
-                        {
-                            "resource_type": e.resource_type,
-                            "resource_name": e.resource_name,
-                            "field": e.field,
-                            "message": e.message,
-                        }
-                        for e in consistency_errors
-                    ],
-                    "dependencies_satisfied": len([e for e in dep_errors if e.severity == "ERROR"]) == 0,
-                    "dependency_errors": [
-                        {
-                            "resource_type": e.resource_type,
-                            "resource_name": e.resource_name,
-                            "message": e.message,
-                            "severity": e.severity,
-                        }
-                        for e in dep_errors
-                    ],
-                },
-                "deployment_order": dep_validator.get_deployment_order(),
-            }
-            console.print(json.dumps(result, indent=2))
-        else:
-            # Rich text output
-            console.print(f"[cyan]Instance:[/cyan] {instance.metadata.name}")
-            console.print(f"[cyan]Fleet:[/cyan] {fleet_config.metadata.name}")
-            console.print(f"[cyan]Extends:[/cyan] {instance.metadata.extends}")
+        payload = resolved.to_api_payload()
+
+        if json_output:
+            console.print(json.dumps(payload, indent=2))
+            return
+
+        console.print(f"[bold blue]Resolving {instance_path}...[/bold blue]\n")
+
+        console.print(f"[cyan]Instance:[/cyan] {instance.metadata.name}")
+        console.print(f"[cyan]Extends:[/cyan] {instance.metadata.extends}")
+        console.print()
+
+        # Display resolved configuration
+        table = Table(title="Resolved Configuration", box=box.ROUNDED)
+        table.add_column("Resource Type", style="cyan")
+        table.add_column("Count", style="magenta")
+        table.add_column("Names", style="green")
+
+        for resource_type, resources in resolved.resources.items():
+            if resources:
+                count = len(resources)
+                names = ", ".join(
+                    r.get("name", r.get("policy_name", r.get("_id", "unnamed")))
+                    for r in resources[:3]
+                )
+                if len(resources) > 3:
+                    names += f" (+{len(resources) - 3} more)"
+                table.add_row(resource_type, str(count), names)
+
+        console.print(table)
+        console.print()
+
+        # Show variables
+        if resolved.variables:
+            var_table = Table(title="Variables", box=box.ROUNDED)
+            var_table.add_column("Name", style="cyan")
+            var_table.add_column("Value", style="green")
+            for name, value in resolved.variables.items():
+                var_table.add_row(name, str(value))
+            console.print(var_table)
             console.print()
-            
-            # Display resolved configuration
-            table = Table(title="Resolved Configuration", box=box.ROUNDED)
-            table.add_column("Resource Type", style="cyan")
-            table.add_column("Count", style="magenta")
-            table.add_column("Names", style="green")
-            
-            for resource_type, resources in resolved.resources.items():
-                if resources:
-                    count = len(resources)
-                    names = ", ".join(
-                        r.get("name", r.get("policy_name", r.get("_id", "unnamed")))
-                        for r in resources[:3]
-                    )
-                    if len(resources) > 3:
-                        names += f" (+{len(resources) - 3} more)"
-                    table.add_row(resource_type, str(count), names)
-            
-            console.print(table)
-            console.print()
-            
-            # Show variables
-            if resolved.variables:
-                var_table = Table(title="Variables", box=box.ROUNDED)
-                var_table.add_column("Name", style="cyan")
-                var_table.add_column("Value", style="green")
-                for name, value in resolved.variables.items():
-                    var_table.add_row(name, str(value))
-                console.print(var_table)
-                console.print()
-            
-            # Show nodes
-            node_table = Table(title="Fleet Nodes", box=box.ROUNDED)
-            node_table.add_column("Node", style="cyan")
-            node_table.add_column("LogPoint ID", style="magenta")
-            node_table.add_column("Role", style="green")
-            node_table.add_column("Tags", style="white")
-            
-            for node in fleet_config.spec.nodes.data_nodes:
-                tags_str = ", ".join(f"{t.key}:{t.value}" for t in node.tags)
-                node_table.add_row(node.name, node.logpoint_id, "DataNode", tags_str)
-            
-            for node in fleet_config.spec.nodes.search_heads:
-                tags_str = ", ".join(f"{t.key}:{t.value}" for t in node.tags)
-                node_table.add_row(node.name, node.logpoint_id, "SearchHead", tags_str)
-            
-            console.print(node_table)
-            console.print()
-            
-            # Show validation results
-            if consistency_errors:
-                console.print("[bold red]Consistency Errors:[/bold red]")
-                for error in consistency_errors:
-                    console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}.{error.field}: {error.message}")
-                console.print()
-                console.print("[yellow]⚠ Configuration has consistency issues. Review before applying.[/yellow]")
-                console.print()
-            else:
-                console.print("[green]✓ All resource references are consistent[/green]")
-                console.print()
-            
-            if dep_errors:
-                errors = [e for e in dep_errors if e.severity == "ERROR"]
-                warnings = [e for e in dep_errors if e.severity == "WARNING"]
-                
-                if errors:
-                    console.print("[bold red]LogPoint Dependency Errors:[/bold red]")
-                    for error in errors:
-                        console.print(f"  [red]•[/red] {error.resource_type}.{error.resource_name}: {error.message}")
-                    console.print()
-                
-                if warnings:
-                    console.print("[bold yellow]LogPoint Dependency Warnings:[/bold yellow]")
-                    for error in warnings:
-                        console.print(f"  [yellow]•[/yellow] {error.resource_type}.{error.resource_name}: {error.message}")
-                    console.print()
-                
-                if errors:
-                    console.print("[red]❌ Deployment would fail - dependency errors must be fixed[/red]")
-                    console.print()
-            else:
-                console.print("[green]✓ All LogPoint dependencies satisfied[/green]")
-                console.print()
-            
-            # Show deployment order
-            console.print("[dim]Deployment order:[/dim]")
-            order = " → ".join(dep_validator.get_deployment_order()[:6])
-            console.print(f"[dim]  {order} → ...[/dim]")
-            console.print()
-            
-            # Show template chain
-            chain_table = Table(title="Template Chain (Root → Leaf)", box=box.ROUNDED)
-            chain_table.add_column("Level", style="cyan")
-            chain_table.add_column("Template", style="magenta")
-            chain_table.add_column("Type", style="green")
-            
-            for i, template in enumerate(resolved.source_chain.templates):
-                level = i + 1
-                name = template.metadata.name
-                template_type = "Instance" if isinstance(template, type(instance)) else "Template"
-                chain_table.add_row(str(level), name, template_type)
-            
-            console.print(chain_table)
-            console.print()
-            
-            console.print("[green]✓ Plan complete. No changes applied (dry-run).[/green]")
-            console.print("[dim]Use 'apply' command to deploy these changes.[/dim]")
-        
+
+        # Show template chain
+        chain_table = Table(title="Template Chain (Root → Leaf)", box=box.ROUNDED)
+        chain_table.add_column("Level", style="cyan")
+        chain_table.add_column("Template", style="magenta")
+        chain_table.add_column("Type", style="green")
+
+        for i, template in enumerate(resolved.source_chain.templates):
+            level = i + 1
+            name = template.metadata.name
+            template_type = "Instance" if isinstance(template, type(instance)) else "Template"
+            chain_table.add_row(str(level), name, template_type)
+
+        console.print(chain_table)
+        console.print()
+
+        # Show API payload
+        console.print("[bold]API Payload (internal fields stripped):[/bold]")
+        console.print(json.dumps(payload, indent=2))
+        console.print()
+        console.print("[green]✓ Resolution complete.[/green]")
+
     except Exception as e:
-        if output == "json":
-            import json
-            console.print(json.dumps({"error": str(e)}))
-        else:
-            console.print(f"[red]Error during planning: {e}[/red]")
+        console.print(f"[red]Error during resolution: {e}[/red]")
         raise typer.Exit(code=1)
 
 
@@ -589,8 +315,8 @@ def _output_validation_rich(
         else:
             summary.add_row("3. Dependencies", "[green]✓ OK[/green]", "All references valid")
     else:
-        summary.add_row("2. API Compliance", "[dim]SKIPPED[/dim]", "No fleet provided")
-        summary.add_row("3. Dependencies", "[dim]SKIPPED[/dim]", "No fleet provided")
+        summary.add_row("2. API Compliance", "[dim]SKIPPED[/dim]", "No resolution performed (see 'resolve' command)")
+        summary.add_row("3. Dependencies", "[dim]SKIPPED[/dim]", "No resolution performed (see 'resolve' command)")
     
     console.print()
     console.print(summary)

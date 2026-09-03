@@ -1,0 +1,48 @@
+# Guardsix Gold Template — Repos (Level 1)
+#
+# The 6 standard repos of the aggregation policy (design draft 4.1).
+# Golden level: single tier on the out-of-the-box mount point.
+# Retention: 30 days for standard repos, 15 days for verbose repos.
+apiVersion: cac-configmgr.io/v1
+kind: ConfigTemplate
+metadata:
+  name: golden-base
+  version: "1.0.0"
+  provider: guardsix
+spec:
+  repos:
+    - name: repo-system
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 30
+
+    - name: repo-system-verbose
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 15
+
+    - name: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 30
+
+    - name: repo-secu-verbose
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 15
+
+    - name: repo-expert-system
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 30
+
+    - name: repo-cloud
+      hiddenrepopath:
+        - _id: primary
+          path: /opt/immune/storage
+          retention: 30

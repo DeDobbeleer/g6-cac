@@ -1,0 +1,8 @@
+# Client instance — regulated customer
+# Uses the MSSP legal-retention template (1 year total retention).
+apiVersion: cac-configmgr.io/v1
+kind: Instance
+metadata:
+  name: client-regulated
+  extends: mssp/demo/legal-retention
+spec: {}

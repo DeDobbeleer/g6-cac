@@ -5,7 +5,7 @@ from cac_configmgr.models import (
     ConfigTemplate,
     TemplateMetadata,
     TemplateSpec,
-    TopologyInstance,
+    Instance,
     InstanceMetadata,
     Repo,
     RoutingPolicy,
@@ -85,16 +85,15 @@ class TestConfigTemplate:
         assert child.is_root() is False
 
 
-class TestTopologyInstance:
+class TestInstance:
     def test_instance_from_yaml_dict(self):
         """Test loading instance from YAML-like dict."""
         data = {
             "apiVersion": "cac-configmgr.io/v1",
-            "kind": "TopologyInstance",
+            "kind": "Instance",
             "metadata": {
                 "name": "client-bank-prod",
                 "extends": "mssp/acme-corp/profiles/enterprise",
-                "fleetRef": "./fleet.yaml"
             },
             "spec": {
                 "vars": {
@@ -110,10 +109,9 @@ class TestTopologyInstance:
                 ]
             }
         }
-        
-        instance = TopologyInstance(**data)
+
+        instance = Instance(**data)
         assert instance.metadata.name == "client-bank-prod"
-        assert instance.metadata.fleet_ref == "./fleet.yaml"
         assert instance.spec.vars["clientCode"] == "BANK"
 
 

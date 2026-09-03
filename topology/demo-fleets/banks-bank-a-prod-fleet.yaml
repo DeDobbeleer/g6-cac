@@ -1,0 +1,32 @@
+apiVersion: cac-configmgr.io/v1
+kind: Fleet
+metadata:
+  name: bank-a
+spec:
+  managementMode: director
+  director:
+    poolUuid: pool-bank-a
+    apiHost: https://director.logpoint.com
+    credentialsRef: env://DIRECTOR_TOKEN
+  nodes:
+    aios: []
+    dataNodes:
+    - name: dn-bank-a-01
+      logpointId: lp-bank-a-p1
+      tags:
+      - cluster: production
+      - env: prod
+      - region: eu-west-1
+    - name: dn-bank-a-02
+      logpointId: lp-bank-a-p2
+      tags:
+      - cluster: production
+      - env: prod
+      - region: eu-west-1
+    searchHeads:
+    - name: sh-bank-a-01
+      logpointId: lp-bank-a-s1
+      tags:
+      - cluster: frontend
+      - env: prod
+      - sh-for: production

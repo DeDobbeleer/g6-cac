@@ -11,7 +11,7 @@ from cac_configmgr.utils import (
     save_instance,
     YamlError,
 )
-from cac_configmgr.models import ConfigTemplate, TopologyInstance
+from cac_configmgr.models import ConfigTemplate, Instance
 
 
 class TestYamlUtils:
@@ -89,12 +89,11 @@ class TestTemplateSerialization:
         assert loaded.spec.repos[0].name == "repo-secu"
     
     def test_save_load_instance_roundtrip(self, tmp_path):
-        """Test saving and loading TopologyInstance."""
-        instance = TopologyInstance(
+        """Test saving and loading Instance."""
+        instance = Instance(
             metadata={
                 "name": "test-instance",
                 "extends": "mssp/acme/base",
-                "fleetRef": "./fleet.yaml"
             },
             spec={
                 "vars": {"clientCode": "TEST"},
@@ -108,13 +107,12 @@ class TestTemplateSerialization:
                 ]
             }
         )
-        
+
         file_path = tmp_path / "instance.yaml"
         save_instance(file_path, instance)
         loaded = load_instance(file_path)
-        
+
         assert loaded.metadata.name == "test-instance"
-        assert loaded.metadata.fleet_ref == "./fleet.yaml"
         assert loaded.spec.vars["clientCode"] == "TEST"
 
 

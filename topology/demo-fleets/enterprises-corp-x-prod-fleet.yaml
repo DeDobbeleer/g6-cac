@@ -1,0 +1,25 @@
+apiVersion: cac-configmgr.io/v1
+kind: Fleet
+metadata:
+  name: corp-x
+spec:
+  managementMode: director
+  director:
+    poolUuid: pool-corp-x
+    apiHost: https://director.logpoint.com
+    credentialsRef: env://DIRECTOR_TOKEN
+  nodes:
+    aios: []
+    dataNodes:
+    - name: dn-corp-x-01
+      logpointId: lp-corp-x-p1
+      tags:
+      - cluster: production
+      - env: prod
+    searchHeads:
+    - name: sh-corp-x-01
+      logpointId: lp-corp-x-s1
+      tags:
+      - cluster: frontend
+      - env: prod
+      - sh-for: production

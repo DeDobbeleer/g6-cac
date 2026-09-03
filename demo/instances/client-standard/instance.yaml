@@ -1,0 +1,8 @@
+# Client instance — standard customer
+# Pure inheritance: no override. Uses the MSSP default template as-is.
+apiVersion: cac-configmgr.io/v1
+kind: Instance
+metadata:
+  name: client-standard
+  extends: mssp/demo/default
+spec: {}

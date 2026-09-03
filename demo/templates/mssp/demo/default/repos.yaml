@@ -1,0 +1,61 @@
+# MSSP Default Template — Repos (Level 2)
+#
+# Inherits the Guardsix gold template and:
+#   - overrides retention: 30 -> 90 (standard repos), 15 -> 30 (verbose repos)
+#   - appends a cold tier /opt/immune/storage_cold at 90 days for ALL repos
+apiVersion: cac-configmgr.io/v1
+kind: ConfigTemplate
+metadata:
+  name: mssp-default
+  extends: guardsix/golden-base
+  version: "1.0.0"
+  provider: mssp-demo
+spec:
+  repos:
+    - name: repo-system
+      hiddenrepopath:
+        - _id: primary
+          retention: 90
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90
+
+    - name: repo-system-verbose
+      hiddenrepopath:
+        - _id: primary
+          retention: 30
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90
+
+    - name: repo-secu
+      hiddenrepopath:
+        - _id: primary
+          retention: 90
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90
+
+    - name: repo-secu-verbose
+      hiddenrepopath:
+        - _id: primary
+          retention: 30
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90
+
+    - name: repo-expert-system
+      hiddenrepopath:
+        - _id: primary
+          retention: 90
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90
+
+    - name: repo-cloud
+      hiddenrepopath:
+        - _id: primary
+          retention: 90
+        - _id: cold
+          path: /opt/immune/storage_cold
+          retention: 90

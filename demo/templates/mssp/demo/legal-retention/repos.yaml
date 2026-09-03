@@ -1,0 +1,70 @@
+# MSSP Legal-Retention Template — Repos (Level 3)
+#
+# Inherits the MSSP default template, for customers under legal retention
+# requirements. For every repo:
+#   - inserts a warm tier /opt/immune/storage_warm (90 days) BETWEEN
+#     primary (/opt/immune/storage) and cold (/opt/immune/storage_cold)
+#   - overrides the cold tier retention so that the TOTAL retention
+#     across all tiers equals 365 days: 90 (primary) + 90 (warm) + 185 (cold)
+apiVersion: cac-configmgr.io/v1
+kind: ConfigTemplate
+metadata:
+  name: mssp-legal-retention
+  extends: mssp/demo/default
+  version: "1.0.0"
+  provider: mssp-demo
+spec:
+  repos:
+    - name: repo-system
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185
+
+    - name: repo-system-verbose
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185
+
+    - name: repo-secu
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185
+
+    - name: repo-secu-verbose
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185
+
+    - name: repo-expert-system
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185
+
+    - name: repo-cloud
+      hiddenrepopath:
+        - _id: warm
+          _before: cold
+          path: /opt/immune/storage_warm
+          retention: 90
+        - _id: cold
+          retention: 185

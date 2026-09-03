@@ -191,33 +191,30 @@ class ConfigTemplate(BaseModel):
 
 class InstanceMetadata(BaseModel):
     """Instance metadata (Level 4 - concrete deployment).
-    
+
     Example:
         metadata:
           name: client-bank-prod
           extends: mssp/acme-corp/profiles/enterprise
-          fleetRef: ./fleet.yaml
     """
     model_config = ConfigDict(populate_by_name=True)
-    
+
     name: str = Field(..., min_length=1, pattern=r"^[a-zA-Z0-9_-]+$")
     extends: str = Field(..., description="Profile template to instantiate")
-    fleet_ref: str = Field(..., alias="fleetRef", description="Path to fleet.yaml")
 
 
-class TopologyInstance(BaseModel):
-    """Topology Instance - concrete deployment (Level 4).
-    
+class Instance(BaseModel):
+    """Instance - concrete deployment (Level 4).
+
     Unlike ConfigTemplate which is multi-file (directory),
-    TopologyInstance is single-file with only overrides.
-    
+    Instance is single-file with only overrides.
+
     Example YAML:
         apiVersion: cac-configmgr.io/v1
-        kind: TopologyInstance
+        kind: Instance
         metadata:
           name: client-bank-prod
           extends: mssp/acme-corp/profiles/enterprise
-          fleetRef: ./fleet.yaml
         spec:
           vars:
             clientCode: BANK
@@ -228,9 +225,9 @@ class TopologyInstance(BaseModel):
                   retention: 3650  # Override: 10 years for banking
     """
     model_config = ConfigDict(populate_by_name=True)
-    
+
     api_version: str = Field(default="cac-configmgr.io/v1", alias="apiVersion")
-    kind: Literal["TopologyInstance"] = Field(default="TopologyInstance")
+    kind: Literal["Instance"] = Field(default="Instance")
     metadata: InstanceMetadata
     spec: TemplateSpec  # Same spec structure, but typically only overrides
     
@@ -250,7 +247,7 @@ class TemplateChain(BaseModel):
             └── mssp/acme-corp/profiles/enterprise
                 └── instances/client-bank/prod
     """
-    templates: list[ConfigTemplate | TopologyInstance]
+    templates: list[ConfigTemplate | Instance]
     
     def get_root(self) -> ConfigTemplate | None:
         """Get the root template (first in chain)."""
@@ -259,7 +256,7 @@ class TemplateChain(BaseModel):
         root = self.templates[0]
         return root if isinstance(root, ConfigTemplate) else None
     
-    def get_leaf(self) -> ConfigTemplate | TopologyInstance | None:
+    def get_leaf(self) -> ConfigTemplate | Instance | None:
         """Get the leaf template (last in chain)."""
         if not self.templates:
             return None

@@ -2,28 +2,14 @@
 
 Based on specifications:
 - 20-TEMPLATE-HIERARCHY: Template inheritance, Repos, Routing
-- 10-INVENTORY-FLEET: Fleet inventory
 - 30-PROCESSING-POLICIES: Processing policies
 """
-
-from .fleet import (
-    Fleet,
-    FleetMetadata,
-    FleetSpec,
-    DirectorConfig,
-    Nodes,
-    Node,
-    AIO,
-    DataNode,
-    SearchHead,
-    Tag,
-)
 
 from .template import (
     ConfigTemplate,
     TemplateMetadata,
     TemplateSpec,
-    TopologyInstance,
+    Instance,
     InstanceMetadata,
     TemplateChain,
 )
@@ -64,22 +50,11 @@ from .devices import (
 )
 
 __all__ = [
-    # Fleet
-    "Fleet",
-    "FleetMetadata",
-    "FleetSpec",
-    "DirectorConfig",
-    "Nodes",
-    "Node",
-    "AIO",
-    "DataNode",
-    "SearchHead",
-    "Tag",
     # Template
     "ConfigTemplate",
     "TemplateMetadata",
     "TemplateSpec",
-    "TopologyInstance",
+    "Instance",
     "InstanceMetadata",
     "TemplateChain",
     # Repos

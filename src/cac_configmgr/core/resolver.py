@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..models.template import ConfigTemplate, TopologyInstance, TemplateChain
+    from ..models.template import ConfigTemplate, Instance, TemplateChain
 
 
 class TemplateResolutionError(Exception):
@@ -35,27 +35,27 @@ class TemplateResolver:
     (golden template without parent).
     
     Example chain:
-        instances/client-bank/prod  (TopologyInstance - leaf)
+        instances/client-bank/prod  (Instance - leaf)
         └── mssp/acme-corp/profiles/enterprise  (ConfigTemplate)
             └── mssp/acme-corp/base  (ConfigTemplate)
                 └── logpoint/golden-base  (ConfigTemplate - root)
     """
-    
+
     def __init__(self, templates_dir: Path):
         """Initialize resolver with templates directory.
-        
+
         Args:
             templates_dir: Root directory containing all templates
         """
         self.templates_dir = templates_dir
-        self._cache: dict[str, ConfigTemplate | TopologyInstance] = {}
+        self._cache: dict[str, ConfigTemplate | Instance] = {}
         self._max_depth = 10  # Prevent infinite recursion
-    
-    def resolve(self, instance: TopologyInstance) -> TemplateChain:
+
+    def resolve(self, instance: Instance) -> TemplateChain:
         """Resolve complete inheritance chain for an instance.
-        
+
         Args:
-            instance: The topology instance (Level 4 - leaf)
+            instance: The instance (Level 4 - leaf)
             
         Returns:
             TemplateChain with all templates from root to leaf
@@ -104,11 +104,11 @@ class TemplateResolver:
         
         return TemplateChain(templates=chain)
     
-    def _get_template_id(self, template: ConfigTemplate | TopologyInstance) -> str:
+    def _get_template_id(self, template: ConfigTemplate | Instance) -> str:
         """Get unique identifier for a template."""
         return template.metadata.name
-    
-    def _get_parent_ref(self, template: ConfigTemplate | TopologyInstance) -> str | None:
+
+    def _get_parent_ref(self, template: ConfigTemplate | Instance) -> str | None:
         """Get parent template reference."""
         extends = template.metadata.extends
         if extends is None:

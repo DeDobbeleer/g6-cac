@@ -12,7 +12,7 @@ from collections import OrderedDict
 import yaml
 from pydantic import BaseModel
 
-from ..models import ConfigTemplate, TopologyInstance, Fleet
+from ..models import ConfigTemplate, Instance
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -119,44 +119,24 @@ def load_template(path: Path) -> ConfigTemplate:
         raise YamlError(f"Invalid ConfigTemplate in {path}: {e}")
 
 
-def load_instance(path: Path) -> TopologyInstance:
-    """Load TopologyInstance from YAML file.
-    
+def load_instance(path: Path) -> Instance:
+    """Load Instance from YAML file.
+
     Args:
         path: Path to instance.yaml
-        
+
     Returns:
-        TopologyInstance instance
-        
+        Instance
+
     Raises:
         YamlError: If file invalid or missing required fields
     """
     data = load_yaml(path)
-    
-    try:
-        return TopologyInstance(**data)
-    except Exception as e:
-        raise YamlError(f"Invalid TopologyInstance in {path}: {e}")
 
-
-def load_fleet(path: Path) -> Fleet:
-    """Load Fleet from YAML file.
-    
-    Args:
-        path: Path to fleet.yaml
-        
-    Returns:
-        Fleet instance
-        
-    Raises:
-        YamlError: If file invalid or missing required fields
-    """
-    data = load_yaml(path)
-    
     try:
-        return Fleet(**data)
+        return Instance(**data)
     except Exception as e:
-        raise YamlError(f"Invalid Fleet in {path}: {e}")
+        raise YamlError(f"Invalid Instance in {path}: {e}")
 
 
 def save_template(path: Path, template: ConfigTemplate, comment: str | None = None) -> None:
@@ -172,55 +152,15 @@ def save_template(path: Path, template: ConfigTemplate, comment: str | None = No
     save_yaml(path, data, comment)
 
 
-def save_instance(path: Path, instance: TopologyInstance, comment: str | None = None) -> None:
-    """Save TopologyInstance to YAML file.
-    
+def save_instance(path: Path, instance: Instance, comment: str | None = None) -> None:
+    """Save Instance to YAML file.
+
     Args:
         path: Path to output YAML file
-        instance: TopologyInstance to save
+        instance: Instance to save
         comment: Optional header comment
     """
     data = instance.model_dump(by_alias=True, exclude_none=True)
-    save_yaml(path, data, comment)
-
-
-def _convert_tags_for_yaml(data: dict) -> dict:
-    """Convert tags from model format to simple dict format.
-    
-    Model format: [{"key": "cluster", "value": "prod"}, ...]
-    YAML format: [{"cluster": "prod"}, ...]
-    """
-    if isinstance(data, dict):
-        result = {}
-        for k, v in data.items():
-            if k == "tags" and isinstance(v, list):
-                # Convert tags to simple dict format
-                result[k] = []
-                for tag in v:
-                    if isinstance(tag, dict) and "key" in tag and "value" in tag:
-                        result[k].append({tag["key"]: tag["value"]})
-                    else:
-                        result[k].append(tag)
-            else:
-                result[k] = _convert_tags_for_yaml(v)
-        return result
-    elif isinstance(data, list):
-        return [_convert_tags_for_yaml(item) for item in data]
-    else:
-        return data
-
-
-def save_fleet(path: Path, fleet: Fleet, comment: str | None = None) -> None:
-    """Save Fleet to YAML file.
-    
-    Args:
-        path: Path to output YAML file
-        fleet: Fleet to save
-        comment: Optional header comment
-    """
-    data = fleet.model_dump(by_alias=True, exclude_none=True)
-    # Convert tags to simple format for cleaner YAML
-    data = _convert_tags_for_yaml(data)
     save_yaml(path, data, comment)
 
 

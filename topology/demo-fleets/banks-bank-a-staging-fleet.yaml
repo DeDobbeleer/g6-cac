@@ -1,0 +1,18 @@
+apiVersion: cac-configmgr.io/v1
+kind: Fleet
+metadata:
+  name: bank-a-staging
+spec:
+  managementMode: director
+  director:
+    poolUuid: pool-bank-a-staging
+    apiHost: https://director.logpoint.com
+    credentialsRef: env://DIRECTOR_TOKEN
+  nodes:
+    aios:
+    - name: aio-bank-a-staging
+      logpointId: lp-bank-a-staging-a1
+      tags:
+      - env: staging
+    dataNodes: []
+    searchHeads: []

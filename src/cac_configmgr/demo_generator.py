@@ -13,16 +13,14 @@ from pathlib import Path
 
 from .models import (
     ConfigTemplate, TemplateMetadata, TemplateSpec,
-    TopologyInstance, InstanceMetadata,
+    Instance, InstanceMetadata,
     Repo, HiddenRepoPath,
     RoutingPolicy, RoutingCriterion,
     ProcessingPolicy,
     NormalizationPolicy, NormalizationPackage,
     EnrichmentPolicy, EnrichmentSpecification, EnrichmentCriterion, EnrichmentRule,
-    Fleet, FleetMetadata, FleetSpec, DirectorConfig, Nodes,
-    DataNode, SearchHead, AIO,
 )
-from .utils import save_multi_file_template, save_instance, save_fleet
+from .utils import save_multi_file_template, save_instance
 
 
 def generate_all_configs(output_dir: Path) -> None:
@@ -448,16 +446,15 @@ def _generate_mssp_templates(base_dir: Path) -> None:
 
 def _generate_client_instances(base_dir: Path) -> None:
     """Generate Client Instances (Level 4)."""
-    
+
     # ===== BANKS =====
     banks_dir = base_dir / "banks"
-    
+
     # Bank A (uses banking-premium profile)
-    bank_a_prod = TopologyInstance(
+    bank_a_prod = Instance(
         metadata=InstanceMetadata(
             name="bank-a-prod",
-            extends="mssp/acme-corp/profiles/banking-premium",
-            fleet_ref="./fleet.yaml"
+            extends="mssp/acme-corp/profiles/banking-premium"
         ),
         spec=TemplateSpec(
             vars={
@@ -473,14 +470,12 @@ def _generate_client_instances(base_dir: Path) -> None:
     )
     bank_a_dir = banks_dir / "bank-a" / "prod"
     save_instance(bank_a_dir / "instance.yaml", bank_a_prod)
-    save_fleet(bank_a_dir / "fleet.yaml", _create_bank_fleet("bank-a", "eu-west-1"))
-    
+
     # Bank A Staging
-    bank_a_staging = TopologyInstance(
+    bank_a_staging = Instance(
         metadata=InstanceMetadata(
             name="bank-a-staging",
-            extends="mssp/acme-corp/profiles/banking-premium",
-            fleet_ref="./fleet.yaml"
+            extends="mssp/acme-corp/profiles/banking-premium"
         ),
         spec=TemplateSpec(
             vars={
@@ -492,14 +487,12 @@ def _generate_client_instances(base_dir: Path) -> None:
     )
     bank_a_stage_dir = banks_dir / "bank-a" / "staging"
     save_instance(bank_a_stage_dir / "instance.yaml", bank_a_staging)
-    save_fleet(bank_a_stage_dir / "fleet.yaml", _create_small_fleet("bank-a-staging"))
-    
+
     # Bank B (uses banking addon directly, different region)
-    bank_b_prod = TopologyInstance(
+    bank_b_prod = Instance(
         metadata=InstanceMetadata(
             name="bank-b-prod",
             extends="mssp/acme-corp/addons/banking",  # Uses addon directly
-            fleet_ref="./fleet.yaml"
         ),
         spec=TemplateSpec(
             vars={
@@ -510,17 +503,15 @@ def _generate_client_instances(base_dir: Path) -> None:
     )
     bank_b_dir = banks_dir / "bank-b" / "prod"
     save_instance(bank_b_dir / "instance.yaml", bank_b_prod)
-    save_fleet(bank_b_dir / "fleet.yaml", _create_bank_fleet("bank-b", "us-east-1"))
-    
+
     # ===== ENTERPRISES =====
     enterprises_dir = base_dir / "enterprises"
-    
+
     # Corp X (uses enterprise profile)
-    corp_x_prod = TopologyInstance(
+    corp_x_prod = Instance(
         metadata=InstanceMetadata(
             name="corp-x-prod",
-            extends="mssp/acme-corp/profiles/enterprise",
-            fleet_ref="./fleet.yaml"
+            extends="mssp/acme-corp/profiles/enterprise"
         ),
         spec=TemplateSpec(
             vars={
@@ -531,14 +522,12 @@ def _generate_client_instances(base_dir: Path) -> None:
     )
     corp_x_dir = enterprises_dir / "corp-x" / "prod"
     save_instance(corp_x_dir / "instance.yaml", corp_x_prod)
-    save_fleet(corp_x_dir / "fleet.yaml", _create_enterprise_fleet("corp-x"))
-    
+
     # Corp Y (uses simple profile)
-    corp_y_prod = TopologyInstance(
+    corp_y_prod = Instance(
         metadata=InstanceMetadata(
             name="corp-y-prod",
-            extends="mssp/acme-corp/profiles/simple",
-            fleet_ref="./fleet.yaml"
+            extends="mssp/acme-corp/profiles/simple"
         ),
         spec=TemplateSpec(
             vars={
@@ -548,77 +537,3 @@ def _generate_client_instances(base_dir: Path) -> None:
     )
     corp_y_dir = enterprises_dir / "corp-y" / "prod"
     save_instance(corp_y_dir / "instance.yaml", corp_y_prod)
-    save_fleet(corp_y_dir / "fleet.yaml", _create_small_fleet("corp-y"))
-
-
-def _create_bank_fleet(name: str, region: str) -> Fleet:
-    """Create fleet configuration for a bank."""
-    return Fleet(
-        metadata=FleetMetadata(name=name),
-        spec=FleetSpec(
-            management_mode="director",
-            director=DirectorConfig(
-                pool_uuid=f"pool-{name}",
-                api_host="https://director.logpoint.com",
-                credentials_ref="env://DIRECTOR_TOKEN"
-            ),
-            nodes=Nodes(
-                data_nodes=[
-                    DataNode(name=f"dn-{name}-01", logpoint_id=f"lp-{name}-p1",
-                            tags=[{"cluster": "production"}, {"env": "prod"}, {"region": region}]),
-                    DataNode(name=f"dn-{name}-02", logpoint_id=f"lp-{name}-p2",
-                            tags=[{"cluster": "production"}, {"env": "prod"}, {"region": region}]),
-                ],
-                search_heads=[
-                    SearchHead(name=f"sh-{name}-01", logpoint_id=f"lp-{name}-s1",
-                              tags=[{"cluster": "frontend"}, {"env": "prod"}, {"sh-for": "production"}]),
-                ]
-            )
-        )
-    )
-
-
-def _create_enterprise_fleet(name: str) -> Fleet:
-    """Create fleet configuration for an enterprise."""
-    return Fleet(
-        metadata=FleetMetadata(name=name),
-        spec=FleetSpec(
-            management_mode="director",
-            director=DirectorConfig(
-                pool_uuid=f"pool-{name}",
-                api_host="https://director.logpoint.com",
-                credentials_ref="env://DIRECTOR_TOKEN"
-            ),
-            nodes=Nodes(
-                data_nodes=[
-                    DataNode(name=f"dn-{name}-01", logpoint_id=f"lp-{name}-p1",
-                            tags=[{"cluster": "production"}, {"env": "prod"}]),
-                ],
-                search_heads=[
-                    SearchHead(name=f"sh-{name}-01", logpoint_id=f"lp-{name}-s1",
-                              tags=[{"cluster": "frontend"}, {"env": "prod"}, {"sh-for": "production"}]),
-                ]
-            )
-        )
-    )
-
-
-def _create_small_fleet(name: str) -> Fleet:
-    """Create small fleet (for staging/simple clients)."""
-    return Fleet(
-        metadata=FleetMetadata(name=name),
-        spec=FleetSpec(
-            management_mode="director",
-            director=DirectorConfig(
-                pool_uuid=f"pool-{name}",
-                api_host="https://director.logpoint.com",
-                credentials_ref="env://DIRECTOR_TOKEN"
-            ),
-            nodes=Nodes(
-                aios=[
-                    AIO(name=f"aio-{name}", logpoint_id=f"lp-{name}-a1",
-                        tags=[{"env": "staging"}]),
-                ]
-            )
-        )
-    )

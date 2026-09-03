@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 from dataclasses import dataclass
 
-from ..models.template import TopologyInstance, ConfigTemplate, TemplateChain, TemplateSpec
+from ..models.template import Instance, ConfigTemplate, TemplateChain, TemplateSpec
 from .resolver import TemplateResolver
 from .merger import merge_resources, deep_merge
 from .interpolator import Interpolator, collect_variables_from_chain
@@ -76,18 +76,18 @@ class ResolutionEngine:
         self.templates_dir = templates_dir
         self.resolver = TemplateResolver(templates_dir)
     
-    def resolve(self, instance: TopologyInstance) -> ResolvedConfiguration:
+    def resolve(self, instance: Instance) -> ResolvedConfiguration:
         """Resolve complete configuration for an instance.
-        
+
         Process:
         1. Build inheritance chain (resolver)
         2. Collect variables from all templates
         3. Merge resources by type
         4. Interpolate variables
         5. Filter internal IDs for API
-        
+
         Args:
-            instance: Topology instance to resolve
+            instance: Instance to resolve
             
         Returns:
             Resolved configuration ready for deployment

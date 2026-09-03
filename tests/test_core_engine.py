@@ -82,13 +82,13 @@ def synthetic_chain(tmp_path: Path) -> tuple[Path, Any]:
       retention: 365
 """,
     )
-    from cac_configmgr.models.template import TopologyInstance
+    from cac_configmgr.models.template import Instance
 
-    instance = TopologyInstance(
+    instance = Instance(
         **{
             "apiVersion": "cac-configmgr.io/v1",
-            "kind": "TopologyInstance",
-            "metadata": {"name": "inst", "extends": "level2/mid", "fleetRef": "./fleet.yaml"},
+            "kind": "Instance",
+            "metadata": {"name": "inst", "extends": "level2/mid"},
             "spec": {},
         }
     )
@@ -109,13 +109,13 @@ class TestChainResolution:
         _write_template(tmp_path / "x/a", "a", "x/b", "  vars: {}\n")
         _write_template(tmp_path / "x/b", "b", "x/a", "  vars: {}\n")
 
-        from cac_configmgr.models.template import TopologyInstance
+        from cac_configmgr.models.template import Instance
 
-        instance = TopologyInstance(
+        instance = Instance(
             **{
                 "apiVersion": "cac-configmgr.io/v1",
-                "kind": "TopologyInstance",
-                "metadata": {"name": "a", "extends": "x/b", "fleetRef": "./fleet.yaml"},
+                "kind": "Instance",
+                "metadata": {"name": "a", "extends": "x/b"},
                 "spec": {},
             }
         )
@@ -123,16 +123,15 @@ class TestChainResolution:
             ResolutionEngine(tmp_path).resolve(instance)
 
     def test_template_not_found(self, tmp_path: Path):
-        from cac_configmgr.models.template import TopologyInstance
+        from cac_configmgr.models.template import Instance
 
-        instance = TopologyInstance(
+        instance = Instance(
             **{
                 "apiVersion": "cac-configmgr.io/v1",
-                "kind": "TopologyInstance",
+                "kind": "Instance",
                 "metadata": {
                     "name": "orphan",
                     "extends": "does/not-exist",
-                    "fleetRef": "./fleet.yaml",
                 },
                 "spec": {},
             }
