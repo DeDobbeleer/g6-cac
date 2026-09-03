@@ -24,11 +24,15 @@ V1 set: Windows (Security/ADFS/DNS/DHCP + Sysmon), Linux, firewalls (FortiGate, 
 
 ## 3. Configuration element policies
 
-- **Repos** — max 8 custom per tenant, **aggregation by category** (never one repo per source): `repo-system(-verbose)`, `repo-secu(-verbose)`, `repo-expert-system`, `repo-cloud`. Verbose = shorter retention. Compliance floor: ≥ 1 year if the SIEM is the legal log store.
-- **Routing** — **one policy per source** (`rp-windows`, `rp-fortigate`…), self-contained; verbose split on event type, not device; `drop` field for filtering (`store` / `discard_raw` / `discard_entirely`).
-- **Normalization** — `np-<source>` per source, **derived from Guardsix official packages** (curated, not reinvented); real packages verified on a live 7.10 export.
-- **Processing** — `pp-<source>` per source: the **binding element** that links norm policy + routing policy (+ enrichment); devices attach to it. No separate source-mapping object.
-- **Enrichment** — policies templated (`ep-threat-intel`, `ep-geoip`, `ep-active-directory`); **sources are UI-created prerequisites** (read-only API).
+All V1 elements, in dependency order. Done = policy defined in the draft; **Next** = to be defined right after this demo.
+
+- **Repos** ✅ — max 8 custom per tenant, **aggregation by category** (never one repo per source): `repo-system(-verbose)`, `repo-secu(-verbose)`, `repo-expert-system`, `repo-cloud`. Verbose = shorter retention. Compliance floor: ≥ 1 year if the SIEM is the legal log store.
+- **Routing Policies** ✅ — **one policy per source** (`rp-windows`, `rp-fortigate`…), self-contained; verbose split on event type, not device; `drop` field for filtering (`store` / `discard_raw` / `discard_entirely`).
+- **Normalization Policies** ✅ — `np-<source>` per source, **derived from Guardsix official packages** (curated, not reinvented); real packages verified on a live 7.10 export.
+- **Enrichment Policies** ✅ — policies templated (`ep-threat-intel`, `ep-geoip`, `ep-active-directory`); **sources are UI-created prerequisites** (read-only API).
+- **Processing Policies** ✅ — `pp-<source>` per source: the **binding element** that links norm policy + routing policy (+ enrichment); devices attach to it. No separate source-mapping object.
+- **Devices** ⏭ **Next** — one device per log emitter, attached to its `pp-<source>`; per-source connection details live here. *To be defined (asap).*
+- **Fetchers** ⏭ **Next** — fetcher definitions for sources that need active collection (e.g. file/API fetchers); attached to devices. *To be defined (asap).*
 
 ## 4. How templates are built (spec: `specs/20-TEMPLATE-HIERARCHY.md`)
 
@@ -40,7 +44,9 @@ V1 set: Windows (Security/ADFS/DNS/DHCP + Sysmon), Linux, firewalls (FortiGate, 
 
 ## 5. Documented vs remaining
 
-**Done:** hierarchy & inheritance model · V1 scope · source prioritization · repo aggregation policy + golden retentions · routing matrix · normalization mapping · enrichment scope decision · spec v1.1 aligned with the draft.
+**Done:** hierarchy & inheritance model · V1 scope · source prioritization · repo aggregation policy + golden retentions · routing matrix · normalization mapping · enrichment scope decision · processing policy binding · spec v1.1 aligned with the draft.
+
+**Next (asap):** Devices policy · Fetchers policy — the last two V1 elements.
 
 **Open:** distribution channel for gold templates (GitHub repo / Terraform provider / CLI-embedded) · governance fields per element (owner, change rights) · normalization gaps (SonicWall, FortiOS main package, Windows/Sysmon core, NDR) from marketplace · enrichment source workflow · template signing & audit trail · topology hooks.
 
