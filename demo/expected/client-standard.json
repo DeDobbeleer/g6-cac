@@ -1,0 +1,82 @@
+{
+  "repos": [
+    {
+      "name": "repo-system",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 90
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    },
+    {
+      "name": "repo-system-verbose",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 30
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    },
+    {
+      "name": "repo-secu",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 90
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    },
+    {
+      "name": "repo-secu-verbose",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 30
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    },
+    {
+      "name": "repo-expert-system",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 90
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    },
+    {
+      "name": "repo-cloud",
+      "hiddenrepopath": [
+        {
+          "path": "/opt/immune/storage",
+          "retention": 90
+        },
+        {
+          "path": "/opt/immune/storage_cold",
+          "retention": 90
+        }
+      ]
+    }
+  ]
+}
