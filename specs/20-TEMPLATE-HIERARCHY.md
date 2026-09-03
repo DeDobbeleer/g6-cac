@@ -1,16 +1,18 @@
 # Hierarchical Template System Specification
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Status**: Draft  
-**Date**: 2026-02-26  
+**Date**: 2026-02-26 — aligned with the PM design draft on 2026-09-03  
 **Author**: CaC-ConfigMgr Product Team  
+
+> **v1.1 alignment note:** this specification is the implementation reference ("the bible"). It was aligned with the PM design draft (`docs/reflexion/TEMPLATING-DESIGN-DRAFT.md`), which is the **norm** wherever the two previously diverged: Guardsix branding, `repo-expert-system`, `rp-fortigate`, `rp-guardsix-ndr`, per-source normalization policies (no generic firewall policy), practical hierarchy depth limit of 4–5 levels, and template-level delete postponed to a future release.
 
 ---
 
 ## 1. Executive Summary
 
 CaC-ConfigMgr CaC implements a **multi-level hierarchical template system** that enables:
-- **LogPoint** to provide battle-tested baseline configurations (Golden Templates)
+- **Guardsix** to provide battle-tested baseline configurations (Golden Templates)
 - **MSSPs** to customize and extend baselines for their operational needs
 - **End Customers** to instantiate specific configurations with environment-specific values
 
@@ -27,7 +29,7 @@ This system eliminates configuration duplication while ensuring consistency, com
 - No standardized compliance baselines from vendor
 
 ### Target State (CaC-ConfigMgr CaC)
-- **Single source of truth**: Base templates maintained by LogPoint
+- **Single source of truth**: Base templates maintained by Guardsix
 - **Progressive specialization**: MSSP → Client Type → Instance
 - **Automatic propagation**: Update base = update all children
 - **Compliance by default**: Golden templates enforce security best practices
@@ -39,7 +41,7 @@ This system eliminates configuration duplication while ensuring consistency, com
 ### 3.1 Template Hierarchy Levels
 
 ```
-LEVEL 1: LOGPOINT GOLDEN (Provider)
+LEVEL 1: GUARDSIX GOLDEN (Provider)
 ├── Vendor-maintained (e.g., golden-base, golden-pci-dss)
 ├── Security-hardened defaults
 └── API-optimized configurations
@@ -144,6 +146,8 @@ logpoint/golden-base
 | **Patch** | Partial modification of parent resource | Add a routing criteria, extend list |
 | **Delete** | Remove resource from parent (explicit) | Disable default repo for specific case |
 
+> **V1 scope note (PM decision, 2026-08-28):** template-level **delete is not a V1 capability**. V1 apply actions are **create / update / noop** only — no deletion of existing objects via the API, and `_action: delete` is rejected by validation in V1. Template-level delete may be introduced in a future release; it only ever affects the *resolved* configuration and must remain clearly distinguished from API-level object deletion.
+
 ### 3.4 Resource Identification (Top Level)
 
 Top-level resources are identified by their **kind + name** tuple:
@@ -182,7 +186,7 @@ repos:
 | `_id` only in child | **Append**: New element added to list |
 | `_action: delete` on existing `_id` | **Remove**: Element removed from list |
 
-**Important**: `_id` and `_action` fields are **internal to CaC-ConfigMgr** and are **filtered out** before sending to LogPoint API.
+**Important**: `_id` and `_action` fields are **internal to CaC-ConfigMgr** and are **filtered out** before sending to the Guardsix API.
 
 #### 3.5.2 Default Ordering Behavior
 
@@ -390,7 +394,7 @@ spec:
 
 **Chain resolution:**
 ```
-LogPoint (golden-base)
+Guardsix (golden-base)
 └── repo-secu: [fast-tier: /opt/immune/storage, 365d]
 
     ↓ extends
@@ -409,7 +413,7 @@ Enterprise (acme-enterprise)
 Final resolved:
 repo-secu:
   - _id: fast-tier
-    path: /opt/immune/storage     ← From LogPoint (inherited)
+    path: /opt/immune/storage     ← From Guardsix (inherited)
     retention: 7                   ← From Enterprise (override)
   - _id: warm-tier
     path: /opt/immune/storage-warm
@@ -613,7 +617,7 @@ def merge_list_by_id(base_list, override_list):
 
 ### 5.2 ID Filtering for API
 
-After template resolution, **_id fields and _action fields must be removed** before sending to LogPoint API:
+After template resolution, **_id fields and _action fields must be removed** before sending to the Guardsix API:
 
 ```python
 def filter_internal_ids(obj):
@@ -848,7 +852,7 @@ spec:
 
 | Template Level | Structure | Rule |
 |----------------|-----------|------|
-| **Level 1-3** (LogPoint, MSSP, Profiles) | **Multi-file** | One file per config type: `repos.yaml`, `routing-policies.yaml`, etc. |
+| **Level 1-3** (Guardsix, MSSP, Profiles) | **Multi-file** | One file per config type: `repos.yaml`, `routing-policies.yaml`, etc. |
 | **Level 4** (Instances) | **Single-file** | One `instance.yaml` containing only overrides |
 
 ### 7.2 Directory Structure
@@ -966,7 +970,7 @@ cac-configmgr template resolve \
 
 ### 8.3 Security
 
-- **Template signing**: Golden templates signed by LogPoint
+- **Template signing**: Golden templates signed by Guardsix
 - **Verification**: `cac-configmgr template verify --template <path>`
 - **Audit trail**: Track who changed which template when
 
@@ -997,10 +1001,10 @@ cac-configmgr template resolve \
 ## 10. Open Questions for Engineering
 
 1. **Maximum inheritance depth**: Limit to prevent circular dependencies and stack overflow?
-   - Proposal: Max 5 levels (LogPoint → MSSP → Profile → Instance → Environment)
+   - **Decided (PM, 2026-09-03):** no conceptual limit in the model, but a **practical limit of 4–5 levels** is imposed, in V1 and future releases (Guardsix → MSSP → Profile → Instance → Environment). Resolution must still detect cycles and fail validation.
 
 2. **Conflict resolution**: When parent and child define same resource with incompatible fields?
-   - Proposal: Child always wins (override)
+   - **Decided:** child always wins (override).
 
 3. **Partial override syntax**: Need for fine-grained patches (e.g., add one routing criteria without rewriting whole policy)?
    - Proposal: Use `action: patch` with JSON Patch-like syntax
@@ -1028,11 +1032,11 @@ See `schemas/template-v1.json` for complete JSON Schema validation.
 
 ## Appendix C: Complete Repo Example with Template IDs
 
-This example demonstrates the full inheritance chain using the **LogPoint Golden Template** with the 6 standard MSSP repos, progressively specialized by an MSSP and then by client type.
+This example demonstrates the full inheritance chain using the **Guardsix Golden Template** with the 6 standard MSSP repos, progressively specialized by an MSSP and then by client type.
 
-### Step 1: LogPoint Golden Template
+### Step 1: Guardsix Golden Template
 
-**LogPoint provides the MSSP baseline with 6 standard repos + default.
+**Guardsix provides the MSSP baseline with 6 standard repos + default.
 IMPORTANT: Only the OOB mount point `/opt/immune/storage` is used at this level.**
 
 **File**: `templates/logpoint/golden-mssp/repos.yaml`
@@ -1048,7 +1052,7 @@ metadata:
 spec:
   repos:
     # All repos use the SAME mount point /opt/immune/storage
-    # LogPoint manages separation internally, not via filesystem paths
+    # Guardsix manages separation internally, not via filesystem paths
     
     - name: repo-default
       hiddenrepopath:
@@ -1086,22 +1090,22 @@ spec:
           path: /opt/immune/storage
           retention: 180
           
-    - name: repo-system-expert
+    - name: repo-expert-system
       hiddenrepopath:
         - _id: primary
           path: /opt/immune/storage
           retention: 730
 ```
 
-**IMPORTANT**: At LogPoint level, ALL repos use the SAME OOB mount point `/opt/immune/storage`.
-The `path` field is ALWAYS the mount point path, never a subdirectory. LogPoint manages repo separation internally.
+**IMPORTANT**: At Guardsix level, ALL repos use the SAME OOB mount point `/opt/immune/storage`.
+The `path` field is ALWAYS the mount point path, never a subdirectory. Guardsix manages repo separation internally.
 Multi-tier rotation with different mount points (`storage-warm`, `storage-cold`, `storage-nfs`) is introduced by MSSPs.
 
 ### Step 2: MSSP Base Template
 
 **File**: `templates/mssp/acme-corp/base/repos.yaml`
 
-**ACME Corp (MSSP) inherits from LogPoint and:**
+**ACME Corp (MSSP) inherits from Guardsix and:**
 - **Introduces new mount points**: `/opt/immune/storage-warm`, `/opt/immune/storage-cold`
 - **Overrides** all retentions to their standard (more conservative)
 - **Adds rotation tiers** using the new mount points for compliance-heavy repos
@@ -1170,7 +1174,7 @@ spec:
           retention: 180
           
     # EXPERT: Long retention with archive
-    - name: repo-system-expert
+    - name: repo-expert-system
       hiddenrepopath:
         - _id: primary
           retention: 90   # Override: 730→90
@@ -1236,7 +1240,7 @@ spec:
           retention: 730  # Enterprise adds: 2 years
           
     # EXPERT: Maximum retention for forensics
-    - name: repo-system-expert
+    - name: repo-expert-system
       hiddenrepopath:
         - _id: primary
           retention: 7    # Override: 90→7
@@ -1286,7 +1290,7 @@ spec:
           retention: 365   # Override: 30→365
           
     # EXPERT: Legal hold extended
-    - name: repo-system-expert
+    - name: repo-expert-system
       hiddenrepopath:
         - _id: nfs
           retention: 3650  # Override: 2555→3650 (10 years)
@@ -1362,7 +1366,7 @@ repos:
         retention: 180
         
   # 7. EXPERT (4 mount points)
-  - name: repo-system-expert
+  - name: repo-expert-system
     hiddenrepopath:
       - path: /opt/immune/storage
         retention: 7
@@ -1396,7 +1400,7 @@ repos:
 | system | 3 | `storage` → `storage-warm` → `storage-cold` | 180→90→7 / 180→90 / 730 | Enterprise |
 | system-verbose | 1 | `/opt/immune/storage` | 30→14 | ACME |
 | cloud | 2 | `storage` → `storage-warm` | 180→90 / 180 | ACME |
-| system-expert | 4 | `storage` → `storage-warm` → `storage-cold` → `storage-nfs` | 730→90→7 / 365→90 / 730→365 / 2555→3650 | Enterprise(Instance) |
+| expert-system | 4 | `storage` → `storage-warm` → `storage-cold` → `storage-nfs` | 730→90→7 / 365→90 / 730→365 / 2555→3650 | Enterprise(Instance) |
 | trading | 3 | `storage` → `storage-warm` → `storage-nfs` | Instance | Instance |
 
 
@@ -1406,9 +1410,9 @@ This example demonstrates how Routing Policies work with the hierarchical templa
 
 **IMPORTANT**: Routing Policies are **source-specific**, not generic. Each source (Windows, Linux, Checkpoint, Fortinet, etc.) has its own unique fields and criteria. There is no "generic firewall" policy that becomes "Checkpoint-specific" - each vendor has completely different field names and structures.
 
-### D.1 LogPoint Golden Template (Source-Specific)
+### D.1 Guardsix Golden Template (Source-Specific)
 
-LogPoint provides routing policies for **major source types**, each with their specific fields:
+Guardsix provides routing policies for **major source types**, each with their specific fields:
 
 **Important**: Routing criteria have a `drop` field for filtering unwanted events:
 - `drop: store` (default) - Store the log
@@ -1491,8 +1495,8 @@ spec:
           drop: discard_raw
           
     # Fortinet - specific Fortinet fields (different from Checkpoint!)
-    - policy_name: rp-fortinet
-      _id: rp-fortinet
+    - policy_name: rp-fortigate
+      _id: rp-fortigate
       catch_all: repo-secu
       routing_criteria:
         - _id: crit-information
@@ -1522,7 +1526,7 @@ spec:
     # SentinelOne - EDR-specific fields
     - policy_name: rp-sentinelone
       _id: rp-sentinelone
-      catch_all: repo-system-expert
+      catch_all: repo-expert-system
       routing_criteria:
         # Note: All SentinelOne logs go to expert by default (catch_all)
         # No specific routing criteria needed unless filtering
@@ -1535,7 +1539,7 @@ spec:
     # CrowdStrike - different EDR fields
     - policy_name: rp-crowdstrike
       _id: rp-crowdstrike
-      catch_all: repo-system-expert
+      catch_all: repo-expert-system
       routing_criteria:
         # All CrowdStrike detections go to expert by default (catch_all)
         # Filter out informational events
@@ -1548,7 +1552,7 @@ spec:
     # Darktrace - NDR-specific fields
     - policy_name: rp-darktrace
       _id: rp-darktrace
-      catch_all: repo-system-expert
+      catch_all: repo-expert-system
       routing_criteria:
         # All Darktrace events go to expert by default
         # Filter low-confidence anomalies
@@ -1558,10 +1562,10 @@ spec:
           value: "low"
           drop: discard_entirely
           
-    # LogPoint NDR
-    - policy_name: rp-logpoint-ndr
-      _id: rp-logpoint-ndr
-      catch_all: repo-system-expert
+    # Guardsix NDR
+    - policy_name: rp-guardsix-ndr
+      _id: rp-guardsix-ndr
+      catch_all: repo-expert-system
       routing_criteria: []
       
     # Office 365 - Cloud-specific fields
@@ -1622,11 +1626,11 @@ spec:
           # Change from parent: different matching logic
           
     # Checkpoint: Keep as-is (no changes)
-    # Since not redefined, fully inherited from LogPoint
+    # Since not redefined, fully inherited from Guardsix
     
     # Fortinet: Add DNS criteria
-    - policy_name: rp-fortinet
-      _id: rp-fortinet
+    - policy_name: rp-fortigate
+      _id: rp-fortigate
       catch_all: repo-secu
       routing_criteria:
         - _id: crit-information     # Inherited
@@ -1636,7 +1640,7 @@ spec:
           type: KeyPresent
           key: dns_query
           
-    # New source: Palo Alto (not in LogPoint template)
+    # New source: Palo Alto (not in Guardsix template)
     - policy_name: rp-paloalto
       _id: rp-paloalto             # New _id = new policy
       catch_all: repo-secu
@@ -1667,7 +1671,7 @@ There is no "generic" field name that works across sources.
 **Windows Policy Resolution:**
 
 ```yaml
-# LogPoint parent (rp-windows)
+# Guardsix parent (rp-windows)
 catch_all: repo-system
 routing_criteria:
   - _id: crit-verbose
@@ -1737,7 +1741,7 @@ spec:
       
     - vendor: fortinet
       product: fortiGate
-      routingPolicy: rp-fortinet
+      routingPolicy: rp-fortigate
       
     - vendor: stormshield
       product: sns
@@ -1763,7 +1767,7 @@ spec:
       
     - vendor: logpoint
       product: ndr
-      routingPolicy: rp-logpoint-ndr
+      routingPolicy: rp-guardsix-ndr
       
     # Cloud
     - vendor: microsoft
@@ -1806,7 +1810,7 @@ spec:
    - When dropping, `repo` field is optional
 
 4. **Source-Specific**: Each routing policy is completely independent.
-   - No inheritance between `rp-checkpoint` and `rp-fortinet`
+   - No inheritance between `rp-checkpoint` and `rp-fortigate`
    - No inheritance between `rp-windows` and `rp-linux`
    - Merge only happens WITHIN the same `_id` (same source type across template levels)
 
@@ -1816,7 +1820,7 @@ spec:
    - New `_id` in child = **append** (add to end of criteria list)
    - `_action: delete` on existing `_id` = **remove** criterion
 
-6. **New Sources**: MSSP can add entirely new routing policies for sources not in LogPoint template (e.g., `rp-paloalto`).
+6. **New Sources**: MSSP can add entirely new routing policies for sources not in Guardsix template (e.g., `rp-paloalto`).
 
 7. **Policy Uniqueness**: `policy_name` must be unique within a template level.
 
@@ -1842,7 +1846,7 @@ MSSP removes a criterion from Windows policy:
 
 A forensic investigation requires **all** Windows logs to be stored in verbose repo:
 
-**LogPoint template:**
+**Guardsix template:**
 ```yaml
 - policy_name: rp-windows
 catch_all: repo-system
@@ -1894,70 +1898,63 @@ spec:
 
 **API Constraint**: Normalization Packages and Compiled Normalizers are **system-level resources** (read-only). They cannot be created by CaC-ConfigMgr, only referenced.
 
-**LogPoint Golden Template**:
+**Guardsix Golden Template**:
 ```yaml
 spec:
   normalizationPolicies:
+    # One policy per source — package names are the real ones shipped with the
+    # product (observed on a live 7.10.0.2 system), NOT placeholders
     - name: np-windows
       _id: np-windows
       normalization_packages:
-        - _id: pkg-windows
-          name: "Windows"
-        - _id: pkg-winsec
-          name: "WinSecurity"
-      compiled_normalizer:
-        - _id: cnf-windows
-          name: "WindowsCompiled"
-      
+        - _id: pkg-windows-dns
+          name: "LP_Windows DNS"
+        - _id: pkg-windows-dhcpdns
+          name: "LP_Windows DHCP and DNS"
+        - _id: pkg-windows-fw
+          name: "LP_Windows Firewall"
+      compiled_normalizer: []
+
     - name: np-linux
       _id: np-linux
       normalization_packages:
-        - _id: pkg-syslog
-          name: "Syslog"
-        - _id: pkg-auth
-          name: "LinuxAuth"
+        - _id: pkg-unix-common
+          name: "LP_Common Unix System"
+        - _id: pkg-unix-sshd
+          name: "LP_Unix SSHD"
+        - _id: pkg-unix-systemd
+          name: "LP_Unix Systemd"
       compiled_normalizer: []
-      
-    - name: np-firewall-generic
-      _id: np-firewall-generic
-      normalization_packages:
-        - _id: pkg-common
-          name: "CommonFirewall"
 ```
+
+**Rule:** there is **no generic normalization policy** (the former `np-firewall-generic` example is removed). Each source has its own `np-<source>` because vendors have completely different field structures — same rule as routing policies (Appendix D.3).
 
 **MSSP Extension**:
 ```yaml
 spec:
   normalizationPolicies:
-    # Windows: Add firewall package
+    # Windows: append a FIM package (new _id = append, others inherited)
     - name: np-windows
       _id: np-windows
       normalization_packages:
-        - _id: pkg-windows
-          name: "Windows"
-        - _id: pkg-winsec
-          name: "WinSecurity"
-        - _id: pkg-winfw
-          name: "WinFirewall"
-      compiled_normalizer:
-        - _id: cnf-windows
-          name: "WindowsCompiled"
-      
-    # Fortinet: Specific packages
-    - name: np-fortinet
-      _id: np-firewall-generic
+        - _id: pkg-fim
+          name: "LP_File Integrity Monitor Nxlog JSON"
+
+    # FortiGate: new policy for a source not in the golden template
+    - name: np-fortigate
+      _id: np-fortigate
       normalization_packages:
-        - _id: pkg-fortinet
-          name: "FortiGate"
-        - _id: pkg-utm
-          name: "FortiUTM"
+        - _id: pkg-fortianalyzer
+          name: "LP_FortiAnalyzer"
+        - _id: pkg-forticonnect
+          name: "LP_FortinetConnect"
 ```
 
 ### E.2 Enrichment Policies (EP)
 
 **API Constraint**: Enrichment Sources are **read-only** (created via UI). Validation FAILS if referenced source doesn't exist.
 
-**LogPoint Golden Template**:
+**Guardsix Golden Template**:
 ```yaml
 spec:
   enrichmentPolicies:
