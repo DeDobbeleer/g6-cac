@@ -20,12 +20,14 @@
 
 - The templating system is the **source of truth**. The artifact generated from a plan is the configuration file that gets applied — it **cannot be modified** outside the template (immutability).
 - Three possible actions per configuration object: **create**, **update**, **noop** (nothing is performed when the object already exists identically — avoids wasting time on API calls and status checks). **No delete in V1.**
+  - **Remark (future release):** the inheritance model defines a template-level `_action: delete` (removing an inherited element from the *resolved* config). This is **not a V1 capability** — no deletion of existing objects via the API in V1. Template-level delete may be introduced in a future release, clearly distinguished from API-level delete.
 - Configuration objects are **validated**: required dependencies and referenced resources must exist. Name-based references imply an **ID lookup mechanism** (detail deferred to tech design).
 - **Performance contract (baseline):** today one configuration object takes ~2–3 s to apply (async API + status polling). This is the documented current baseline; it will be revised after testing the new flow (bulk POST then batched status checks is a candidate optimization — *how*, tech design).
 
 **Requirements (decided — mechanism defined in `specs/20-TEMPLATE-HIERARCHY.md`):**
 
 - The templating system must be **hierarchical**. Four levels: **Guardsix Golden (L1) → MSSP Base (L2) → Deployment Profile (L3) → Instance (L4)**, with both **cross-level** inheritance (level N-1 → N via `extends`) and **intra-level** inheritance (same level, e.g. a compliance add-on extending the golden base).
+  - **Depth limit:** conceptually the hierarchy is unbounded; in practice we **impose a limit of 4–5 levels**, in V1 and future releases.
 - The customer **may or may not inherit** from the Guardsix gold templates — inheritance is **optional and granular by design**:
   - **Opt-out total:** `extends` is optional — a template without `extends` is standalone (customer writes everything from scratch).
   - **Partial inheritance per resource:** top-level resources are matched by `name` — a customer can inherit Guardsix repos but override or replace normalization policies.
@@ -134,16 +136,19 @@ Enrichment (Confluence wave 1, all Premium): Threat Intelligence, Stix/Taxii, CS
 ### 4.1 Repos
 
 - **Recommendation:** maximum **8 custom repos** per tenant. Aggregation is the rule: sources are **grouped into repos by category**, never one repo per source.
-- **Aggregation policy** (field-proven, from MSSP architecture practice):
+- **Aggregation policy** (field-proven, from MSSP architecture practice), with the **golden reference retentions** (days, single tier on the OOB mount point at golden level — multi-tier rotation is introduced at MSSP level and below):
 
-| Repo | Sources aggregated | Retention |
+| Repo | Sources aggregated | Golden reference retention (days) |
 |---|---|---|
-| `repo-system` | Windows/AD, Linux, macOS, … | standard |
-| `repo-system-verbose` | same sources, verbose logs | **lower** than standard |
-| `repo-secu` | Firewall, proxy, router, switch, … | standard |
-| `repo-secu-verbose` | same sources, verbose logs | **lower** than standard |
-| `repo-expert-system` | EDR, NDR, bastion, UEBA, … | standard |
-| `repo-cloud` | O365, AWS, Google Workspace | standard |
+| `repo-default` | catch-all for unmatched logs | 90 |
+| `repo-system` | Windows/AD, Linux, macOS, … | 180 |
+| `repo-system-verbose` | same sources, verbose logs | 30 |
+| `repo-secu` | Firewall, proxy, router, switch, … | 365 |
+| `repo-secu-verbose` | same sources, verbose logs | 30 |
+| `repo-expert-system` | EDR, NDR, bastion, UEBA, … | 730 |
+| `repo-cloud` | O365, AWS, Google Workspace | 180 |
+
+**[OPEN]** Validate the reference values against the compliance floor (≥ 1 year when the SIEM is the legal log store — `repo-system` at 180 and `repo-cloud` at 180 are below it).
 
 - **Retention rule:** verbose repos may have a **shorter retention** than their non-verbose counterparts (volume-driven cost control). Compliance floor still applies (see §3.4 — ≥ 1 year when the SIEM is the legal log store).
 - **Design implication:** this aggregation policy drives **both repos and routing policies** — routing policies must map each source category to its target repo (see §4.2). The two elements are designed together.
@@ -187,6 +192,8 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 - **Evaluation order:** within a source policy, verbose criteria are evaluated **before** standard criteria (most specific first). **[OPEN]** confirm ordering semantics of routing policy evaluation (Director API).
 - **Catch-all:** anything unmatched goes to a default repo — governance note: unmatched logs must be **visible** (drift/monitoring), never silently dropped. **[OPEN]** keep `repo-default` as catch-all or reject unmatched?
 - **Normalization dependency:** routing criteria reference normalization policies — routing policies are therefore designed **after** normalization policies in the dependency DAG (§2.1).
+- **Event filtering (`drop` field, from the historical spec):** each criterion carries a `drop` action — `store` (default: keep the log), `discard_raw` (drop the raw event, keep normalized), `discard_entirely` (drop completely; `repo` optional). A criterion routing to the same repo as `catch_all` is redundant and should be rejected by validation.
+- **Source mapping (from the historical spec):** an explicit `sourceMappings` object links vendor/product to its routing policy (e.g. `fortinet/fortigate → rp-fortigate`), so devices know which policy applies. The naming convention `rp-<source>` makes this mostly mechanical, but the explicit mapping is kept for validation and lookup.
 - **Lifecycle:** create / update / noop (no delete in V1). Idempotent re-apply: same criteria + same target = noop.
 
 **Governance fields:** owner / layer / change rights / inheritance — **[OPEN]**, same model to define as repos (§4.1).
@@ -224,6 +231,8 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 **Design rules:**
 
 - **Curation, not copy:** the export contains test/training leftovers (`mitre_*`, `normalization_policy_training`, internal `_LogPointAlerts`) — the gold template only keeps policies that map to a source of §3.3.
+- **No generic normalization policy (decided):** the historical spec had an `np-firewall-generic` example — superseded. One `np-<source>` per source, consistent with the "no cross-source inheritance" rule (§4.2): each vendor has completely different field structures.
+- **Naming norm (decided):** this draft is the norm over the historical spec — real package names from the system export (§4.3 table), `repo-expert-system`, `rp-fortigate`, `rp-guardsix-ndr`, "Guardsix" branding.
 - **Windows is one source** (consistent with §4.2): DNS/DHCP packages live inside `np-windows`, no separate `np-windows-dns`.
 - **Signature selection is part of the policy:** a normalization policy is not just a package list — `selected_signatures` matter (e.g. `linux` = 1 package but 122 selected signatures). Gold templates must capture both.
 - **Lifecycle:** create / update / noop (no delete in V1).
@@ -268,3 +277,20 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 
 - With a **Legacy-ready template**, we could in the future have a legacy destination scope and, from the legacy data, derive **Log Sources destinations** *(assertion to be verified)*.
   - **[RISK]** Depends on Remark 2 above — needs early validation.
+
+## 6. Alignment with the Historical Spec (`specs/20-TEMPLATE-HIERARCHY.md`)
+
+This draft **supersedes** the historical spec (Feb 2026) wherever they differ. Resolutions recorded:
+
+| Topic | Historical spec | This draft (norm) |
+|---|---|---|
+| Delete semantics | `_action: delete` at template level | V1: no delete at all; template-level delete postponed to a future release (§1) |
+| Generic normalization | `np-firewall-generic` example | Rejected — one `np-<source>` per source (§4.3) |
+| Hierarchy depth | 4 levels, open question on max | No conceptual limit; practical limit 4–5 levels, V1 and future (§1) |
+| Naming | `repo-system-expert`, `rp-fortinet`, `rp-logpoint-ndr`, "LogPoint" | `repo-expert-system`, `rp-fortigate`, `rp-guardsix-ndr`, "Guardsix" |
+| Normalization content | Fictional placeholder packages | Real packages from a live 7.10.0.2 export (§4.3) |
+| Golden retentions | Scattered example values | Defined as golden reference values in §4.1 |
+
+**Concepts adopted from the spec into this draft:** `sourceMappings` (§4.2), `drop` field semantics (§4.2), enrichment sources as UI-created prerequisites (§4.4), inheritance/ordering mechanisms (§1).
+
+**Concept from the spec not yet adopted:** golden template **signing & verification** with audit trail (spec §8.3) — **[OPEN]**, governance topic, to position in the PR-FAQ.
