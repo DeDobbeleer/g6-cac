@@ -8,7 +8,7 @@
 
 **Why templating.** Onboarding a new MSSP customer today means manually configuring every SIEM element — repos, routing, normalization, processing, devices — pool by pool, instance by instance. This is slow, inconsistent between engineers, error-prone, and unreviewable. There is no standard baseline: each customer estate reflects whoever configured it.
 
-**Who it serves.** The primary user is the **MSSP / SOC engineer** deploying and operating customer estates at fleet scale (reference point: SCALTEL operates ~70 Director-managed tenants). Secondary users: Guardsix CS/SE engineers onboarding new customers, and partners (8com, Scautel) building their own templates on top of ours.
+**Who it serves.** The primary user is the **MSSP / SOC engineer** deploying and operating customer estates at fleet scale (reference point: SCALTEL operates ~70 Director-managed tenants). Secondary users: Guardsix CS/SE engineers onboarding new customers, and partners (8com, Scaltel) building their own templates on top of ours.
 
 **Target outcome.** A new customer pool is configured **from a template on day one**: standard, reviewable, repeatable. The template is the unit of change — reviewed like code, applied identically across tenants, and the reference against which drift is measured later.
 
@@ -23,11 +23,18 @@
 - Configuration objects are **validated**: required dependencies and referenced resources must exist. Name-based references imply an **ID lookup mechanism** (detail deferred to tech design).
 - **Performance contract (baseline):** today one configuration object takes ~2–3 s to apply (async API + status polling). This is the documented current baseline; it will be revised after testing the new flow (bulk POST then batched status checks is a candidate optimization — *how*, tech design).
 
-**Requirements and open points:**
+**Requirements (decided — mechanism defined in `specs/20-TEMPLATE-HIERARCHY.md`):**
 
-- The templating system must be **hierarchical**.
-- The customer may or may not **inherit from the Guardsix gold templates**.
-  - **[OPEN]** Define what optional inheritance means concretely: opt-in per layer? per resource type? Can a customer inherit partially (e.g. Guardsix repos but their own normalization policies)?
+- The templating system must be **hierarchical**. Four levels: **Guardsix Golden (L1) → MSSP Base (L2) → Deployment Profile (L3) → Instance (L4)**, with both **cross-level** inheritance (level N-1 → N via `extends`) and **intra-level** inheritance (same level, e.g. a compliance add-on extending the golden base).
+- The customer **may or may not inherit** from the Guardsix gold templates — inheritance is **optional and granular by design**:
+  - **Opt-out total:** `extends` is optional — a template without `extends` is standalone (customer writes everything from scratch).
+  - **Partial inheritance per resource:** top-level resources are matched by `name` — a customer can inherit Guardsix repos but override or replace normalization policies.
+  - **Fine-grained within lists:** list elements (repo tiers, routing criteria, normalization packages) are matched by internal `_id` — same `_id` = field-level merge (child wins), new `_id` = append, `_action: delete` = remove from the resolved config.
+  - **Five mechanisms:** inherit, override, append, patch, delete — plus explicit ordering (`_after`, `_before`, `_position`, `_first`, `_last`). `_id`/`_action` are internal only, filtered out before any API call.
+  - **Version pinning:** `extends: golden-base@v2.1.0` (exact), `@v2` (latest 2.x), or unpinned (latest).
+
+**Still open:**
+
 - The **distribution channel** for gold templates is still to be defined: GitHub repo? Terraform provider?
   - **[OPEN]** Candidates: GitHub repo (native versioning, PR/review, customer forks — but we own maintenance and version migrations), Terraform provider (product-grade distribution — but imposes a runtime/mental model), or templates embedded in the CLI itself (`cac init --template golden-base`). This is a *how*, can stay TBD in the PR-FAQ.
 
@@ -45,7 +52,7 @@ Resources covered by templating, in dependency order:
 1. Repos
 2. Routing Policies
 3. Normalization Policies
-4. Enrichment Policies — Enrichment Sources? **[OPEN]** enrichment policies reference live sources (tables, files, threat intel). Proposal to decide: in V1 we template the policy, the source stays out of scope.
+4. Enrichment Policies — **Enrichment Sources are out of scope (decided):** they are read-only via API, created through the Director UI as a manual prerequisite. Validation FAILS if a policy references a missing source (see §4.4).
 5. Processing Policies
 6. Devices
 7. Fetchers
@@ -101,7 +108,7 @@ Sources present **both** in the [Confluence tier-1 list](https://logpoint.atlass
 | 4. Firewall | Check Point / Cisco Firepower / Sophos / others | Priority 6 | Syslog | ✅ (candidates for V1.1) |
 | 5. Cloud control plane | AWS CloudTrail / GCP Admin-Audit | Priority 7 | API fetcher / Log Sources | ❌ requires Log Sources |
 
-Enrichment (Confluence wave 1, all Premium): Threat Intelligence, Stix/Taxii, CSV, LDAP, ODBC, IPtoHost — templated as enrichment *policies* only; the live sources themselves stay out of scope **[OPEN]**.
+Enrichment (Confluence wave 1, all Premium): Threat Intelligence, Stix/Taxii, CSV, LDAP, ODBC, IPtoHost — templated as enrichment *policies* only; the sources themselves are a UI-created manual prerequisite (**decided**, see §4.4).
 
 ### 3.4 Divergences and exclusions
 
@@ -188,29 +195,31 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 
 - **Sourcing rule (PM decision):** the gold template's normalization policies are **derived from Guardsix's official normalization definitions** — the same normalization packages that ship with the product / Log Source templates. We do not reinvent normalization content; we **curate and reference** what Guardsix already maintains. This keeps templates aligned with product evolution by construction.
 - **Naming convention:** `np-<source>`, aligned with `rp-<source>` (§4.2) — one normalization policy per source.
-- **Basis:** analysis of a real 7.10.0.2 system export (`sync_config_.json`, 43 NormPolicies / 575 NormPackages).
+- **Basis:** analysis of a real 7.10.0.2 system export (`sync_config_.json`) — **both** its 43 NormPolicies **and** its full catalog of 575 installed NormPackages (packages present on a system even when no policy references them yet).
 
-**Normalization mapping (derived from the export):**
+**Normalization mapping (one `np-<source>` per routing-matrix source):**
 
-| Normalization policy | Source | Normalization packages | Signatures |
+| Normalization policy | Source | Normalization packages (from export) | Status |
 |---|---|---|---|
-| `np-windows` | Windows (Security, ADFS, DNS, DHCP) | LP_Windows DNS, LP_Windows DHCP and DNS, LP_Windows Firewall + FIM packages | 35 |
-| `np-linux` | Linux servers | LP_Common Unix System | 122 |
-| `np-fortigate` | FortiGate | LP_Forti Authenticator v4, LP_FortiAnalyzer, LP_FortinetConnect | 32 |
-| `np-paloalto` | Palo Alto PAN-OS | LP_Palo Alto Global Protect, LP_PaloAlto Cortex Data Lake | 6 |
-| `np-cisco` | Cisco Firepower | LP_Cisco PIXASA, Catalyst 35XX, ISE, FWSM | 958 |
-| `np-citrix-netscaler` | Citrix Netscaler | LP_Citrix NetScaler | 15 |
-| `np-bluecoat` | Blue Coat | LP_BlueCoat Audit, LP_BlueCoat ProxySG | 26 |
-| `np-o365` | Office365 (V2) | LP_O365 Exchange MT | 13 |
-| `np-trendmicro` | Trend Micro (V2) | LP_Trend Micro Office Scan, Control Manager, DB | 20 |
+| `np-windows` | Windows (Security, ADFS, DNS, DHCP) | LP_Windows DNS, LP_Windows DHCP and DNS, LP_Windows Firewall, FIM packages | ✅ partial — **[OPEN]** core Windows Security Event Log + Sysmon packages not in this export (not installed on that system) → pull from marketplace |
+| `np-linux` | Linux servers | LP_Common Unix System + LP_Unix SSHD (173), Systemd (126), Sudo (27), Auditd (13), Named (180)… curated subset of 115 Unix packages | ✅ |
+| `np-fortigate` | FortiGate | LP_FortiAnalyzer, LP_FortinetConnect, LP_Forti Authenticator v4 | ✅ partial — **[OPEN]** main FortiGate (FortiOS traffic) package not installed on the exported system → pull from marketplace |
+| `np-paloalto` | Palo Alto PAN-OS | LP_Palo Alto Global Protect, LP_PaloAlto Cortex Data Lake | ✅ |
+| `np-checkpoint` | Check Point Firewall | LP_CheckPoint Firewall (28), LP_CheckPoint Firewall Process (32), LP_CheckPoint Firewall Opsec Generic (7) | ✅ |
+| `np-cisco` | Cisco Firepower | LP_Cisco PIXASA (1348), LP_Cisco IOS/CatOS (551), LP_Cisco ISE (196), LP_Cisco FWSM | ✅ |
+| `np-sophos` | Sophos Firewall | LP_Sophos UTM Process (171), LP_Sophos Generic (13) | ✅ |
+| `np-watchguard` | WatchGuard Firewall | LP_Watchguard Firewall (101), v11_10 (77), v11_9 (82) | ✅ |
+| `np-sonicwall` | SonicWall Firewall | — | ❌ **[OPEN]** no SonicWall package in export → pull from marketplace |
+| `np-f5` | F5 BIG-IP | LP_F5 BIG-IP APM v11_x_x (113) / v12_x_x (45), LP_F5 BIG-IP Process (110), LP_F5 Load Balancer (364) | ✅ |
+| `np-citrix-netscaler` | Citrix Netscaler | LP_Citrix NetScaler (30) | ✅ |
+| `np-bluecoat` | Blue Coat proxy | LP_BlueCoat Audit (9), LP_BlueCoat ProxySG (17) | ✅ |
+| `np-guardsix-ndr` | Guardsix NDR | — | ❌ **[OPEN]** no NDR package in export → pull from marketplace / product team |
+| `np-trendmicro` | Trend Micro (EDR, V2) | LP_Trend Micro IMSVA (84), Office Scan (10), DB (7), Control Manager (3), IMSS, IWSVA | ✅ |
+| `np-crowdstrike` / `np-sentinelone` / `np-defender-xdr` | EDR (V2) | — | ❌ **[OPEN]** not in export — V2 anyway |
+| `np-o365` | Office365 (V2) | LP_O365 Exchange MT (13) | ✅ |
+| `np-aws` / `np-gcp` / `np-gworkspace` | Cloud (V2) | — | ❌ expected: cloud sources are normalized through Log Sources mode, not legacy packages |
 
-**Gaps — sources of the routing matrix with no usable normalization content in the export [OPEN]:**
-
-- `np-checkpoint` (Check Point) — empty in export; the Premium plugin exists → pull from official package catalog
-- `np-sophos` (Sophos Firewall) — empty in export
-- `np-guardsix-ndr` (Guardsix NDR) — empty in export
-- EDR sources (CrowdStrike, SentinelOne, Defender XDR) — V2 anyway
-- `np-watchguard`, `np-sonicwall`, `np-f5` — not present in the export at all
+**Remaining gaps consolidated [OPEN]:** SonicWall, main FortiGate FortiOS package, core Windows Security/Sysmon package, Guardsix NDR, CrowdStrike/SentinelOne/Defender XDR. All are Premium plugins per the [Integration Classification Overview](https://logpoint.atlassian.net/wiki/pages/viewpage.action?pageId=5922947094) — the normalization content exists in the marketplace, it was simply not installed on the exported system. Action: pull the official package definitions from the marketplace catalog (or a system where they are installed).
 
 **Design rules:**
 
@@ -223,7 +232,25 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 
 ### 4.4 Enrichment Policies
 
-*(to be written)*
+- **Scope decision (from `specs/20-TEMPLATE-HIERARCHY.md` Appendix E):** we template **enrichment policies only**. Enrichment **sources** are **read-only via API** — they are created through the Director UI as a **manual prerequisite**. Validation **FAILS** if a policy references a source that does not exist on the target (no auto-creation).
+- **Naming convention:** `ep-<domain>` (e.g. `ep-threat-intel`, `ep-active-directory`).
+
+**Gold template content (wave 1 enrichment, from §3.3):**
+
+| Enrichment policy | Purpose | Sources referenced (UI prerequisite) |
+|---|---|---|
+| `ep-threat-intel` | IP/IOC reputation on network & security events | Threat Intel (Stix/Taxii feeds) |
+| `ep-geoip` | Geolocation of source/destination IPs | IPtoHost / GeoIP source |
+| `ep-active-directory` | User context (department, title) on auth events | LDAP source |
+
+**Design rules:**
+
+- A policy = ordered **specifications**: each spec references a source, matching criteria (e.g. `KeyPresent source_address`), and field-mapping rules (`source_key` → `event_key`, operation `Equals`, typed values).
+- **Order matters:** specifications are evaluated in order — ordering uses the standard mechanisms (`_after`, `_position`…, §1).
+- **Inheritance:** same model as everywhere — specs matched by `_id` (merge/append/delete per level).
+- **Lifecycle:** create / update / noop (no delete in V1).
+
+**Governance fields:** owner / layer / change rights — **[OPEN]**, same model as repos (§4.1). Inheritance mechanisms defined (§1).
 
 ### 4.5 Processing Policies
 
