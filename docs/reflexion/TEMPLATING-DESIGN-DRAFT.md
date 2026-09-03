@@ -103,7 +103,7 @@ Sources present **both** in the [Confluence tier-1 list](https://logpoint.atlass
 | 1. Auth (IAM) | Microsoft ADFS Authentication | Priority 2, plugin Yes, content yes | Windows Event Log | ✅ |
 | 2. DNS/DHCP | Windows DNS Server logs / debug log | Priority 4, plugin yes | Event Log / debug log file | ✅ |
 | 2. DNS/DHCP | Windows DHCP Server | Priority 4, plugin Yes | Event Log / file | ✅ |
-| 3. Endpoint (EDR) | CrowdStrike / SentinelOne / Defender XDR / Trellix | Priority 3 | API / alerting sources | ❌ alerting out of V1 scope |
+| 3. Endpoint (EDR) | CrowdStrike / SentinelOne / Defender XDR / Trellix | Priority 3 | API fetcher / syslog (detections, events) | ✅ **V1** — log ingestion in scope; alert *rules* remain a later stage |
 | 3. Network detection (NDR) | Guardsix NDR; also DarkTrace, Vectra | Premium / Standard plugins | Syslog (alerts / metadata) | ✅ (legacy syslog) — **[OPEN]** validate with Benjamin |
 | 4. Firewall | Fortinet FortiGate | Priority 6, Premium, SE-prioritized | Syslog | ✅ |
 | 4. Firewall | Palo Alto Networks PAN-OS | Priority 6, Premium, SE-prioritized | Syslog | ✅ |
@@ -115,7 +115,8 @@ Enrichment (Confluence wave 1, all Premium): Threat Intelligence, Stix/Taxii, CS
 ### 3.4 Divergences and exclusions
 
 - **Confluence tier-1 but not a field top priority:** email security gateways (Mimecast, Proofpoint, Barracuda, O365 — Priority 5), VMware vCenter/ESXi + FortiAnalyzer (Priority 8), Ping Identity / CyberArk (Priority 2, plugin present but no content) → V1.1 candidates.
-- **Field/industry top priority but blocked in V1:** cloud control plane (CloudTrail, Azure Activity, GCP Audit) — requires Log Sources; endpoint EDR alerting — alerting is a later stage. Both are explicitly called out so partners understand the gap is architectural, not an omission.
+- **Field/industry top priority but blocked in V1:** cloud control plane (CloudTrail, Azure Activity, GCP Audit) — requires Log Sources. Explicitly called out so partners understand the gap is architectural, not an omission.
+- **EDR is V1** for log ingestion (detections/events via fetcher/syslog); only the alert *rules* on EDR data remain a later stage (alerting content is out of V1 scope).
 - **Disputed in Confluence comments:** the need for Sysmon vs native Event Logs is debated (see inline comments on the tier-1 page); field position: keep Sysmon — MITRE coverage, pySigma support, fills the native logging visibility gap.
 
 **[OPEN]** Validate §3.3 with Benjamin (field reality check) before the engineering demo.
@@ -176,10 +177,10 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 | `rp-citrix-netscaler` | Citrix Netscaler | `repo-secu` | traffic → `repo-secu-verbose` |
 | `rp-bluecoat` | Blue Coat proxy | `repo-secu` | traffic → `repo-secu-verbose` |
 | `rp-guardsix-ndr` | Guardsix NDR | `repo-expert-system` | — |
-| `rp-crowdstrike` | CrowdStrike | `repo-expert-system` — **V2** (alerting sources out of V1 scope, §3.3) | — |
-| `rp-sentinelone` | SentinelOne Singularity | `repo-expert-system` — **V2** | — |
-| `rp-defender-xdr` | Microsoft Defender XDR | `repo-expert-system` — **V2** | — |
-| `rp-trellix` | Trellix | `repo-expert-system` — **V2** | — |
+| `rp-crowdstrike` | CrowdStrike | `repo-expert-system` | — |
+| `rp-sentinelone` | SentinelOne Singularity | `repo-expert-system` | — |
+| `rp-defender-xdr` | Microsoft Defender XDR | `repo-expert-system` | — |
+| `rp-trellix` | Trellix | `repo-expert-system` | — |
 | `rp-o365` | Microsoft Office365 | `repo-cloud` — **V2 only** (Log Sources, §2 Remark 2) | — |
 | `rp-aws` | AWS CloudTrail | `repo-cloud` — **V2 only** (Log Sources, §2 Remark 2) | — |
 | `rp-gworkspace` | Google Workspace (Gmail, audit) | `repo-cloud` — **V2 only** (Log Sources, §2 Remark 2) | — |
@@ -221,8 +222,8 @@ Routing policies implement the repo aggregation policy (§4.1): **one routing po
 | `np-citrix-netscaler` | Citrix Netscaler | LP_Citrix NetScaler (30) | ✅ |
 | `np-bluecoat` | Blue Coat proxy | LP_BlueCoat Audit (9), LP_BlueCoat ProxySG (17) | ✅ |
 | `np-guardsix-ndr` | Guardsix NDR | — | ❌ **[OPEN]** no NDR package in export → pull from marketplace / product team |
-| `np-trendmicro` | Trend Micro (EDR, V2) | LP_Trend Micro IMSVA (84), Office Scan (10), DB (7), Control Manager (3), IMSS, IWSVA | ✅ |
-| `np-crowdstrike` / `np-sentinelone` / `np-defender-xdr` | EDR (V2) | — | ❌ **[OPEN]** not in export — V2 anyway |
+| `np-trendmicro` | Trend Micro (EDR) | LP_Trend Micro IMSVA (84), Office Scan (10), DB (7), Control Manager (3), IMSS, IWSVA | ✅ |
+| `np-crowdstrike` / `np-sentinelone` / `np-defender-xdr` | EDR | — | ❌ **[OPEN]** not in export → pull from marketplace (V1) |
 | `np-o365` | Office365 (V2) | LP_O365 Exchange MT (13) | ✅ |
 | `np-aws` / `np-gcp` / `np-gworkspace` | Cloud (V2) | — | ❌ expected: cloud sources are normalized through Log Sources mode, not legacy packages |
 

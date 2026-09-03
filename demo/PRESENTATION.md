@@ -20,7 +20,7 @@ Repos → Routing Policies → Normalization Policies → Enrichment Policies �
 
 **Finding:** field priorities match the industry consensus — **authentication > DNS > endpoint > firewall** — and converge with the official tiering on the same source set.
 
-V1 set: Windows (Security/ADFS/DNS/DHCP + Sysmon), Linux, firewalls (FortiGate, Palo Alto, Check Point, …), Guardsix NDR. V2: EDR, cloud control plane.
+V1 set: Windows (Security/ADFS/DNS/DHCP + Sysmon), Linux, firewalls (FortiGate, Palo Alto, Check Point, …), Guardsix NDR, **EDR** (CrowdStrike, SentinelOne, Defender XDR — log ingestion; alert *rules* come later). V2: cloud control plane.
 
 ## 3. Configuration element policies
 
